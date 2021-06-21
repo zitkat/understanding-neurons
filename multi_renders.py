@@ -4,6 +4,8 @@
 __author__ = "Tomas Zitka"
 __email__ = "zitkat@kky.zcu.cz"
 
+from collections import OrderedDict
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -13,6 +15,7 @@ from lucent.modelzoo.util import get_model_layers
 from settings import transforms
 from util import ncobj, batch_indices, now, ensured_path, get_layer, renderable_units
 from visualizations import show_fvs
+from mapped_model import build_layers_dict
 
 
 def render_layer(model, layer, idcs, mode="neuron",
@@ -68,7 +71,7 @@ def render_model(model, layers, idcs=None, mode="neuron",
     if hasattr(model, "module"):
         model = model.module
     model = model.to(0).eval()
-    all_layers = get_model_layers(model)
+    all_layers = build_layers_dict(model)
 
     # REFACTOR move to function
     if layers == "all":
@@ -76,20 +79,20 @@ def render_model(model, layers, idcs=None, mode="neuron",
               "value and will take really long!")
         selected_layers = all_layers
     elif callable(layers):
-        selected_layers = [ln for ln in all_layers if layers(ln)]
+        selected_layers = OrderedDict((ln, lo) for ln, lo in all_layers.items() if layers(ln))
     elif isinstance(layers, list):
-        selected_layers = layers
+        selected_layers = OrderedDict((ln, all_layers[ln]) for ln in layers)
     elif isinstance(layers, str):
-        selected_layers = [ln for ln in all_layers if layers in ln]
+        selected_layers = OrderedDict((ln, lo) for ln, lo in all_layers.items() if layers in ln)
     else:
         raise ValueError("Unsupported specification of layers to render.")
 
-    for layer_name in selected_layers:
-        n = renderable_units(get_layer(model, layer_name))
+    for layer_name, layer_object in selected_layers.items():
+        n = renderable_units(layer_object)
         if n > 0:
-            print(f"\n\n{now()} Starting layer_name {layer_name} - {mode}s\n")
+            print(f"\n\n{now()} Starting layer {layer_name} - {mode}s\n")
         else:
-            print(f"{now()} Skipping composite layer_name {layer_name} - {mode}s")
+            print(f"{now()} Skipping composite layer {layer_name} - {mode}s")
             continue
 
         ns = idcs
@@ -97,8 +100,8 @@ def render_model(model, layers, idcs=None, mode="neuron",
             ns = list(range(n))
 
         # TODO save to h5
-        output_npys_path = ensured_path((outputs_path / "npys") / (mode + "s_" + layer_name + "_" + output_suffix))
-        output_fig_path = ensured_path((outputs_path / "figs") / (mode + "s_" + layer_name + "_" + output_suffix + ".png"))
+        output_npys_path = ensured_path((outputs_path / "npys") / (mode + "s-" + layer_name + "-" + output_suffix))
+        output_fig_path = ensured_path((outputs_path / "figs") / (mode + "s-" + layer_name + "-" + output_suffix + ".png"))
         if output_npys_path.with_suffix(".npy").exists():
             print(f"{output_npys_path} already exists.")
             continue

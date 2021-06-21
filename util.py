@@ -60,9 +60,9 @@ def renderable_units(layer : nn.Module):
 
 
 
-def ncobj(t : str, layer : str, n : int, batch=0):
-    """Constructs objective base on type t"""
-    obj_constructor = getattr(objectives, t)
+def ncobj(m : str, layer : str, n : int, batch=0):
+    """Constructs objective base on type m"""
+    obj_constructor = getattr(objectives, m)
     return obj_constructor(layer.replace("-", "_"), n , batch=batch)
 
 

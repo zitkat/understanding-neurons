@@ -95,7 +95,7 @@ class MappedModel(nn.Module):
             return self.layers[item]
 
 
-def build_layers_dict(module):
+def build_layers_dict(module : nn.Module):
     """
     Like get_model_layers from lucent.modelzoo.util
     but returns actual layer objects
@@ -109,7 +109,7 @@ def build_layers_dict(module):
             for name, layer in net._modules.items():
                 if layer is None:
                     continue
-                layers["_".join(prefix+[name])] = layer
+                layers["-".join(prefix+[name])] = layer
                 get_layers(layer, prefix=prefix+[name])
 
     get_layers(module)
