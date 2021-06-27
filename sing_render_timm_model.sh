@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -q gpu
-#PBS -l walltime=8:00:00
-#PBS -l select=1:ncpus=1:ngpus=1:mem=10gb:scratch_ssd=30gb:cluster=adan
+#PBS -l walltime=4:00:00
+#PBS -l select=1:ncpus=1:ngpus=1:mem=10gb:scratch_ssd=30gb
 #PBS -j oe
 #PBS -o /storage/plzen1/home/zitkat/
 #PBS -m ae
