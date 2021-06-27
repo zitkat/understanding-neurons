@@ -87,6 +87,8 @@ def render_model(model, layers, idcs=None, mode="neuron",
     else:
         raise ValueError("Unsupported specification of layers to render.")
 
+    open(outputs_path / "layers.list", "w", encoding="utf-8").write("\n".join(selected_layers.keys()))
+
     for layer_name, layer_object in selected_layers.items():
         n = renderable_units(layer_object)
         if n > 0:

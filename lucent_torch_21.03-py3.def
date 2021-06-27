@@ -8,7 +8,7 @@ Registry: nvcr.io
   pip install seaborn
 
   # lucent requirements
-  pip install pytest_mock kornia<=0.4.1 coveralls
+  pip install pytest_mock kornia==0.4.1 coveralls
 
 %labels
   Author zitkat
