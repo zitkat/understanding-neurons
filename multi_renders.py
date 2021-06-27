@@ -81,7 +81,7 @@ def render_model(model, layers, idcs=None, mode="neuron",
     elif callable(layers):
         selected_layers = OrderedDict((ln, lo) for ln, lo in all_layers.items() if layers(ln))
     elif isinstance(layers, list):
-        selected_layers = OrderedDict((ln, all_layers[ln]) for ln in layers)
+        selected_layers = OrderedDict((ln, all_layers[ln]) for ln in layers if ln in all_layers)
     elif isinstance(layers, str):
         selected_layers = OrderedDict((ln, lo) for ln, lo in all_layers.items() if layers in ln)
     else:
