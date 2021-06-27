@@ -40,10 +40,10 @@ singularity exec --nv -B "$SCRATCHDIR"  "$sing_image" \
                             -sv v1 \
                             --settings-file settings.csv\
                             --output "$OUTPUT_PATH"/renders \
-                            --hide-progress > "$DATA_PATH"/"$today"_render_timm_model.log
+                            --hide-progress > "$DATA_PATH"/"$today"_"$model_name"_render_timm_model.log
 
-cp "$WORK_PATH"/sing_render_timm_model.sh "$OUTPUT_PATH"/"$model_name"/"$today"_sing_render_timm_model.sh || export CLEAN_SCRATCH=false
-cp -ru "$OUTPUT_PATH" "$DATA_PATH" || export CLEAN_SCRATCH=False
+cp "$WORK_PATH"/sing_render_timm_model.sh "$OUTPUT_PATH"/"$today"_"$model_name"_sing_render_timm_model.sh || export CLEAN_SCRATCH=false
+cp -ru "$OUTPUT_PATH"/* "$DATA_PATH" || export CLEAN_SCRATCH=False
 
 
 
