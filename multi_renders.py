@@ -4,23 +4,23 @@
 __author__ = "Tomas Zitka"
 __email__ = "zitkat@kky.zcu.cz"
 
+import time
 from collections import OrderedDict
 
 import numpy as np
 import matplotlib.pyplot as plt
+import pandas as pd
 
 from lucent.optvis import render, param
-from lucent.modelzoo.util import get_model_layers
 
 from settings import transforms
-from util import ncobj, batch_indices, now, ensured_path, get_layer, renderable_units
+from util import ncobj, batch_indices,  ensured_path, iterate_renderable_layers
 from visualizations import show_fvs
 from mapped_model import build_layers_dict
 
 
-def render_layer(model, layer, idcs, mode="neuron",
-                 batch_size=6,
-                 image_size=(50,),
+def render_layer(model, layer, idcs, mode="neuron", batch_size=6, image_size=(50,),
+                 # render_vis params
                  optimizer=None,
                  transforms=transforms,
                  thresholds=(512,),
@@ -53,10 +53,9 @@ def render_layer(model, layer, idcs, mode="neuron",
     return np.concatenate(res_list, axis=0)
 
 
-def render_model(model, layers, idcs=None, mode="neuron",
-                 outputs_path=None, output_suffix="",
-                 batch_size=6,
-                 image_size=(50,),
+def render_model(model, layers, idcs=None, mode="neuron", outputs_path=None,
+                 output_suffix="", batch_size=6, image_size=(50,),
+                 # render_vis params
                  optimizer=None,
                  transforms=transforms,
                  thresholds=(512,),
@@ -70,32 +69,12 @@ def render_model(model, layers, idcs=None, mode="neuron",
                  fixed_image_size=None):
     if hasattr(model, "module"):
         model = model.module
-    model = model.to(0).eval()
-    all_layers = build_layers_dict(model)
 
-    # REFACTOR move to function
-    if layers == "all":
-        print("Warning: rendering ALL layers, this might be caused by default "
-              "value and will take really long!")
-        selected_layers = all_layers
-    elif callable(layers):
-        selected_layers = OrderedDict((ln, lo) for ln, lo in all_layers.items() if layers(ln))
-    elif isinstance(layers, list):
-        selected_layers = OrderedDict((ln, all_layers[ln]) for ln in layers if ln in all_layers)
-    elif isinstance(layers, str):
-        selected_layers = OrderedDict((ln, lo) for ln, lo in all_layers.items() if layers in ln)
-    else:
-        raise ValueError("Unsupported specification of layers to render.")
-
+    selected_layers = select_layers(layers, model)
     open(ensured_path(outputs_path / "layers.list"), "w", encoding="utf-8").write("\n".join(selected_layers.keys()))
 
-    for layer_name, layer_object in selected_layers.items():
-        n = renderable_units(layer_object)
-        if n > 0:
-            print(f"\n\n{now()} Starting layer {layer_name} - {mode}s\n")
-        else:
-            print(f"{now()} Skipping composite layer {layer_name} - {mode}s")
-            continue
+    model = model.to(0).eval()
+    for layer_name, layer_object, n in iterate_renderable_layers(selected_layers, verbose=True):
 
         ns = idcs
         if idcs is None:
@@ -107,10 +86,7 @@ def render_model(model, layers, idcs=None, mode="neuron",
         if output_npys_path.with_suffix(".npy").exists():
             print(f"{output_npys_path} already exists.")
             continue
-        res = render_layer(model, layer_name, ns,
-                           mode=mode,
-                           batch_size=batch_size,
-                           image_size=image_size,
+        res = render_layer(model, layer_name, ns, mode=mode, batch_size=batch_size, image_size=image_size,
                            optimizer=optimizer,
                            transforms=transforms,
                            thresholds=thresholds,
@@ -127,3 +103,70 @@ def render_model(model, layers, idcs=None, mode="neuron",
         f, a = show_fvs(res, ns, max_cols=8)
         f.savefig(output_fig_path)
         plt.close()
+
+
+def select_layers(layers, model):
+    all_layers = build_layers_dict(model)
+    if layers == "all":
+        print("Warning: rendering ALL layers, this might be caused by default "
+              "value and will take really long!")
+        selected_layers = all_layers
+    elif callable(layers):
+        selected_layers = OrderedDict(
+                (ln, lo) for ln, lo in all_layers.items() if layers(ln))
+    elif isinstance(layers, list):
+        selected_layers = OrderedDict((ln, all_layers[ln]) for ln in layers if ln in all_layers)
+    elif isinstance(layers, str):
+        selected_layers = OrderedDict((ln, lo) for ln, lo in all_layers.items() if layers in ln)
+    else:
+        raise ValueError("Unsupported specification of layers to render.")
+    return selected_layers
+
+
+def stat_model(model, layers=None, idcs=None, mode="neuron", batch_size=6, image_size=(50,),
+               outputs_path=None, output_suffix="",
+               save_samples : bool = True, n_test_units : int =None,
+               **kwargs):
+    if hasattr(model, "module"):
+        model = model.module
+    model = model.to(0).eval()
+
+    selected_layers = select_layers(layers if layers is not None else "all",
+                                    model)
+
+
+    stats_list = []
+    for layer_name, layer_obj, n in iterate_renderable_layers(selected_layers,
+                                                              verbose=True):
+        output_npys_path = ensured_path((outputs_path / "npys") / (mode + "s-" + layer_name + "-" + output_suffix))
+        output_fig_path = ensured_path((outputs_path / "figs") / (mode + "s-" + layer_name + "-" + output_suffix + ".png"))
+        if idcs is None:
+            if n_test_units is not None:
+                idcs = list(range(n_test_units))
+            else:
+                idcs = list(range(batch_size))
+
+        t0 = time.time()
+        res = render_layer(model, layer_name, idcs, mode=mode, batch_size=batch_size, image_size=image_size, **kwargs)
+        t1 = time.time()
+
+
+        if save_samples:
+            np.save(output_npys_path, res)
+            f, a = show_fvs(res, idcs, max_cols=8)
+            f.savefig(output_fig_path)
+            plt.close()
+
+        stats_dict = dict(name=layer_name, cls=type(layer_obj),
+                          units=n,
+                          test_units=len(idcs),
+                          bs=batch_size,
+                          unit_time=(t1 - t0) / len(idcs),
+                          batch_time=(t1 - t0) / len(idcs) * batch_size,
+                          all_time=(t1 - t0) / len(idcs) * n
+                          )
+        stats_list.append(stats_dict)
+
+    stats_df = pd.DataFrame(stats_list)
+    stats_df.set_index("name", inplace=True)
+    return stats_df

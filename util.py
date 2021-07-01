@@ -4,8 +4,8 @@
 __author__ = "Tomas Zitka"
 __email__ = "zitkat@kky.zcu.cz"
 from pathlib import Path
-
 import time
+from typing import Dict
 
 import numpy as np
 import timm
@@ -35,7 +35,7 @@ def now():
 
 def get_layer(module : nn.Module, layer : str):
     """
-    Traverses module base on underscore _ connectd
+    Traverses module base on dash - connectd
     string to extract layer object
     """
     last_layer = module
@@ -48,17 +48,32 @@ def get_layer(module : nn.Module, layer : str):
     return last_layer
 
 
-def is_composite(layer):
+def is_composite(layer) -> bool:
+    """
+    Returns True if layer contains any modules
+    """
     return bool(getattr(layer, "_modules", ()))
 
 
-def renderable_units(layer : nn.Module):
+def count_renderable_units(layer : nn.Module):
     """Return number of renderable units in layer,
         so far support only Conv and Linear
     """
-    return getattr(layer, "out_channels", 0) + getattr(layer, "out_features", 0)
+    return (getattr(layer, "out_channels", 0)    # Conv
+            # + getattr(layer, "out_features", 0)    # Linear
+            )
 
-
+def iterate_renderable_layers(layers : Dict[str, nn.Module],  verbose=False):
+    for layer_name, layer_object in layers.items():
+        n = count_renderable_units(layer_object)
+        if n > 0:
+            if verbose:
+                print(f"\n\n{now()} Starting layer {layer_name}\n")
+            yield layer_name, layer_object, n
+        else:
+            if verbose:
+                print(f"{now()} Skipping composite layer {layer_name}")
+            continue
 
 def ncobj(m : str, layer : str, n : int, batch=0):
     """Constructs objective base on type m"""

@@ -14,7 +14,7 @@ from torch import nn
 import numpy as np
 
 import multi_renders
-from util import get_timm_model
+from util import iterate_renderable_layers
 
 
 T = TypeVar('T', bound='MappedModel')
@@ -26,6 +26,9 @@ class MappedModel(nn.Module):
         super(MappedModel, self).__init__()
         self.module = model
         self.layers = build_layers_dict(self.module)
+
+        self.renderable_layers = OrderedDict(
+                (n, o) for n, o, _ in iterate_renderable_layers(self.layers))
 
         self.activations = OrderedDict()
         self.record_activations = False
@@ -68,7 +71,7 @@ class MappedModel(nn.Module):
         head_weights = self[layer, n]
         # TODO use https://pytorch.org/docs/stable/jit.html to get traversable computational graph?
 
-    def kill_unit(self, layer, unit):
+    def kill_unit(self, layer, unit) -> nn.Module:
         ...
         # TODO zero out specified unit
 
@@ -117,11 +120,17 @@ def build_layers_dict(module : nn.Module):
 
 
 if __name__ == '__main__':
+    from util import get_timm_model
+
     model = get_timm_model("seresnext50_32x4d", target_size=5)
-    net_dict = torch.load("data/seresnext50_32x4d_0_best.pth")
+    net_dict = torch.load("data/models/seresnext50_32x4d_0_best.pth")
     model.load_state_dict(net_dict)
 
+
+
     mmodel = MappedModel(model).eval().to(0)
+
+
     all_layers = list(mmodel.layers.keys())
     rendered_path = Path("data/pretrained_seresnext50_32x4d/npys")
     rendered_layers = list(rendered_path.glob("*.npy"))
