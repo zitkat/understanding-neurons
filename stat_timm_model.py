@@ -35,7 +35,7 @@ def main(model_name: str, model_weights: str,
          output: Path,
          hide_progress: bool):
 
-    print(f"{now()} Rendering {model_name}: {model_weights}")
+    print(f"{now()} Statsing {model_name}: {model_weights}")
 
     name = model_weights
     if model_weights.endswith(".pth"):

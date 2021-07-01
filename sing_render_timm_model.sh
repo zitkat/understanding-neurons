@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -q gpu
-#PBS -l walltime=4:00:00
-#PBS -l select=1:ncpus=1:ngpus=1:mem=10gb:scratch_ssd=30gb
+#PBS -l walltime=16:00:00
+#PBS -l select=1:ncpus=1:ngpus=1:mem=10gb:scratch_ssd=30gb:gpu_cap=cuda75
 #PBS -j oe
 #PBS -o /storage/plzen1/home/zitkat/
 #PBS -m ae
@@ -14,13 +14,13 @@ sing_image=lucent_torch_21.03-py3.sif
 
 
 # -- tested by:
-##$ qsub -I -l select=1:ncpus=1:ngpus=1:mem=10gb:scratch_ssd=10gb -l walltime=0:30:00 -q gpu
+##$ qsub -I -l select=1:ncpus=1:ngpus=1:mem=10gb:scratch_ssd=10gb:gpu_cap=cuda75 -l walltime=1:00:00 -q gpu
 
 cp -r /storage/plzen1/home/zitkat/understanding-critical-neurons/ "$SCRATCHDIR" || exit $LINENO
 
-DATA_PATH=$SCRATCHDIR/understanding-critical-neurons/data
 WORK_PATH=$SCRATCHDIR/understanding-critical-neurons/
-OUTPUT_PATH=$SCRATCHDIR/understanding-critical-neurons/output
+DATA_PATH=$SCRATCHDIR/understanding-critical-neurons/data
+OUTPUT_PATH=$SCRATCHDIR/understanding-critical-neurons/data
 
 cd "$WORK_PATH" || exit $LINENO
 
@@ -43,7 +43,7 @@ singularity exec --nv -B "$SCRATCHDIR"  "$sing_image" \
                             --hide-progress > "$DATA_PATH"/"$today"_"$model_name"_render_timm_model.log
 
 cp "$WORK_PATH"/sing_render_timm_model.sh "$OUTPUT_PATH"/"$today"_"$model_name"_sing_render_timm_model.sh || export CLEAN_SCRATCH=false
-cp -ru "$OUTPUT_PATH"/* "$DATA_PATH" || export CLEAN_SCRATCH=False
+#cp -ru "$OUTPUT_PATH"/* "$DATA_PATH" || export CLEAN_SCRATCH=False
 
 
 
