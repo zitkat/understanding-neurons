@@ -43,7 +43,7 @@ def load_settings(set_path: Path = Path("settings.csv"),
     elif set_path.suffix == ".ods":
         settings_df = pd.read_excel(set_path, engine='odf', index_col="Key")
     else:
-        raise NotImplemented("Only csv and ods files supported.")
+        raise NotImplemented("Only csv or ods files supported.")
 
     splits = list(np.where(settings_df.index == group_sep)[0])
     if len(splits) == 0 or splits[0] != 0:

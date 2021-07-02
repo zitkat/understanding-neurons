@@ -12,7 +12,8 @@ from matplotlib.offsetbox import (TextArea, OffsetImage,
                                   AnnotationBbox)
 import seaborn as sns
 
-from util import get_var_filter_iter, fill_dict, none2str
+from utils import plogger
+from utils.vis_util import get_var_filter_iter, fill_dict, none2str
 
 symbols = dict(zip(map(str, np.arange(0, 6, dtype=int)),
                    ["o", "d", "v", "^", "s", "p"]))
@@ -232,7 +233,7 @@ def show_fvs(fv_array, ns, max_cols=4):
     N = len(ns)
     rows = max(int(np.ceil(N / max_cols)), 1)
     cols = min(N, max_cols)
-    print(rows, cols)
+    plogger.debug(rows, cols)
     fig, axs = plt.subplots(nrows=rows, ncols=cols,
                             figsize=(5*max_cols, 5*rows),
                             tight_layout=True)

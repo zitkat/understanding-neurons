@@ -11,10 +11,9 @@ from pathlib import Path
 import torch
 from lucent.optvis import render
 from torch import nn
-import numpy as np
 
 import multi_renders
-from util import iterate_renderable_layers
+from utils.model_util import iterate_renderable_layers
 
 
 T = TypeVar('T', bound='MappedModel')
@@ -120,14 +119,11 @@ def build_layers_dict(module : nn.Module):
 
 
 if __name__ == '__main__':
-    from util import get_timm_model
+    from utils.model_util import get_timm_model
 
     model = get_timm_model("seresnext50_32x4d", target_size=5)
     net_dict = torch.load("data/models/seresnext50_32x4d_0_best.pth")
     model.load_state_dict(net_dict)
-
-
-
     mmodel = MappedModel(model).eval().to(0)
 
 

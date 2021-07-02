@@ -11,7 +11,8 @@ from pathlib import Path
 import torch
 import timm
 
-from util import now, get_timm_model
+from utils.model_util import get_timm_model
+from utils.process_util import now, plogger, add_plog_file
 from multi_renders import render_model
 from settings import load_settings
 
@@ -34,7 +35,9 @@ def main(model_name: str, model_weights: str,
          settings_version: str, settings_file: Path,
          output: Path,
          hide_progress: bool):
-    print(f"{now()} Rendering {model_name}: {model_weights}")
+
+    add_plog_file(output / f"{now()}_{model_name}_{model_weights}.plog")
+    plogger.info(f"Rendering {model_name}: {model_weights}")
 
     name = model_weights
     if model_weights.endswith(".pth"):
@@ -48,7 +51,7 @@ def main(model_name: str, model_weights: str,
     elif model_weights == "initialized":
         save_path = output / (model_name + "_init.pth")
         if save_path.exists():
-            print(f"Loading existing initialization from {save_path}")
+            plogger.info(f"Loading existing initialization from {save_path}")
             model = get_timm_model(model_name, target_size=5)
             net_dict = torch.load(save_path)
             model.load_state_dict(net_dict)
@@ -56,7 +59,7 @@ def main(model_name: str, model_weights: str,
             model = get_timm_model(model_name, pretrained=False, target_size=5)
             torch.save(model.cpu().state_dict(), save_path)
     else:
-        print(f"Unknown option for model weights {model_weights} terminating!")
+        plogger.error(f"Unknown option for model weights {model_weights} terminating!")
         return
     outputs_path = Path(output, model_name + "_" + name)
 

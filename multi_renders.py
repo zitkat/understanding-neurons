@@ -14,7 +14,8 @@ import pandas as pd
 from lucent.optvis import render, param
 
 from settings import transforms
-from util import ncobj, batch_indices,  ensured_path, iterate_renderable_layers
+from utils.model_util import ncobj, batch_indices, iterate_renderable_layers
+from utils.process_util import plogger, ensured_path
 from visualizations import show_fvs
 from mapped_model import build_layers_dict
 
@@ -84,7 +85,7 @@ def render_model(model, layers, idcs=None, mode="neuron", outputs_path=None,
         output_npys_path = ensured_path((outputs_path / "npys") / (mode + "s-" + layer_name + "-" + output_suffix))
         output_fig_path = ensured_path((outputs_path / "figs") / (mode + "s-" + layer_name + "-" + output_suffix + ".png"))
         if output_npys_path.with_suffix(".npy").exists():
-            print(f"{output_npys_path} already exists.")
+            plogger.info(f"{output_npys_path} already exists.")
             continue
         res = render_layer(model, layer_name, ns, mode=mode, batch_size=batch_size, image_size=image_size,
                            optimizer=optimizer,
@@ -108,8 +109,8 @@ def render_model(model, layers, idcs=None, mode="neuron", outputs_path=None,
 def select_layers(layers, model):
     all_layers = build_layers_dict(model)
     if layers == "all":
-        print("Warning: rendering ALL layers, this might be caused by default "
-              "value and will take really long!")
+        plogger.warning("Warning: rendering ALL layers, this might be caused by default "
+                        "value and will take really long!")
         selected_layers = all_layers
     elif callable(layers):
         selected_layers = OrderedDict(
@@ -119,6 +120,7 @@ def select_layers(layers, model):
     elif isinstance(layers, str):
         selected_layers = OrderedDict((ln, lo) for ln, lo in all_layers.items() if layers in ln)
     else:
+        plogger.error(f"Unsupported specification of layers to render {layers}.")
         raise ValueError("Unsupported specification of layers to render.")
     return selected_layers
 
