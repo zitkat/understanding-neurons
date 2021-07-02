@@ -18,9 +18,9 @@ def get_unit_from_labels(labels: np.ndarray, layer_name, n, prefix="neurons", su
     return nidx
 
 
-def pretty_layer_label(layer_name, n=None):
+def pretty_layer_label(layer_name, n=None, sep="-"):
     """Pretty prints layer name"""
-    parts = layer_name.split("-")
+    parts = layer_name.split(sep)
     if len(parts) <= 3:
         return parts[1]
     return f"L{parts[1][-1]}.{parts[2]} Conv {parts[3][-1]} : {none2str(n)}"

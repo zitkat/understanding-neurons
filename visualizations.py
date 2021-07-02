@@ -145,6 +145,8 @@ def plot_parametrized_var(df,
                           **kwargs):
     """
     # TODO documentation and usage example
+    # TODO force same axes
+    # TODO add figsize option
     :param df:
     :param x_var:
     :param y_var:
