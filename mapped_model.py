@@ -14,6 +14,8 @@ from torch import nn
 
 import multi_renders
 from utils.model_util import iterate_renderable_layers
+from utils.dataset_util import DataSet
+from utils.safety_util import SafetyAnalysis
 
 
 T = TypeVar('T', bound='MappedModel')
@@ -121,10 +123,14 @@ def build_layers_dict(module : nn.Module):
 if __name__ == '__main__':
     from utils.model_util import get_timm_model
 
-    model = get_timm_model("seresnext50_32x4d", target_size=5)
-    net_dict = torch.load("data/models/seresnext50_32x4d_0_best.pth")
-    model.load_state_dict(net_dict)
-    mmodel = MappedModel(model).eval().to(0)
+    model = get_timm_model("seresnext50_32x4d", target_size=5, pretrained=True)
+    #net_dict = torch.load("data/models/seresnext50_32x4d_0_best.pth")
+    #model.load_state_dict(net_dict)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    mmodel = MappedModel(model).eval().to(device)
+
+    dataset = DataSet()
+    safety_analysis = SafetyAnalysis(mmodel, dataset)
 
 
     all_layers = list(mmodel.layers.keys())

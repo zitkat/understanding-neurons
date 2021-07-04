@@ -5,12 +5,13 @@ import os
 import numpy as np
 import json
 import datetime
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 plt.rcParams.update({'figure.max_open_warning': 0})
 
 
-class SafetyAlgorithm():
+class SafetyAnalysis:
 
     def __init__(self, MappedModel, EvalSet):
         super().__init__()
@@ -44,6 +45,21 @@ class SafetyAlgorithm():
         self.feature_map_dict = {}
         self.fm_sum_responses_dict = {}
         self.statistics_dict = collections.defaultdict(list)
+
+    @staticmethod
+    def get_layers_filter_position(_weights)-> int:
+        if len(_weights.shape) == 4:  # to filter only depth separable and conv layers
+            if _weights.shape[3] == 1:
+                return 2
+            else:
+                return 3
+
+        # to filter only dense layers
+        elif len(_weights.shape) == 2:
+           return 1
+
+        else:
+            return None
 
     @staticmethod
     def demask_filter_layer(_weights, _original_weights):
@@ -146,7 +162,7 @@ class SafetyAlgorithm():
 
         return criticality_cc + criticality_dc
 
-    def get_conf_and_class(self, des_cls, input_batch, remove=False):
+    def get_conf_and_class(self, des_cls: int, input_batch: dict, remove=False):
 
         # Get outputs from chosen layers and calculate maximum responses
         output = self.MappedModel(input_batch)
@@ -159,18 +175,18 @@ class SafetyAlgorithm():
         pre_conf = np.max(output_layer)
         pre_cls = self.EvalSet.list_of_classes_labels[pre_ind]
 
-        des_cls_ind = self.EvalSet.list_of_classes_labels.index(des_cls)
-        des_conf = output_layer[des_cls_ind]
+        des_ind = self.EvalSet.list_of_classes_labels.index(des_cls)
+        des_conf = output_layer[des_ind]
 
-        if ((des_cls != pre_cls) or (des_cls == pre_cls and pre_conf < 0.5)) and remove == True:
-            os.remove(os.path.join( path, file_name))
+        #if ((des_cls != pre_cls) or (des_cls == pre_cls and pre_conf < 0.5)) and remove == True:
+        #    os.remove(os.path.join( path, file_name))
 
-        self.logger.debug("Prediction index: {}, class: {}, confidence: {}, for image: {}".format(
-                            pre_ind, pre_cls, pre_conf, file_name))
+        #self.logger.debug("Prediction index: {}, class: {}, confidence: {}, for image: {}".format(
+        #                    pre_ind, pre_cls, pre_conf, file_name))
 
-        return des_conf, des_cls_ind
+        return pre_ind, pre_conf, des_ind, des_conf
 
-    def analyse_CDP_plain_masking(self):
+    def analyse_criticality_via_plain_masking(self):
 
         self.logger.debug(" ----------- Starting the CDPA_plain_masking ----------- ")
 
@@ -180,15 +196,16 @@ class SafetyAlgorithm():
         original_layers = copy.deepcopy(self.MappedModel.renderable_layers)
         masked_layers = self.MappedModel.renderable_layers
 
-        for image_name, image, label in EvalSet.iterator():
-            des_conf, des_ind = self.get_conf_and_class("hovno", image)
+        for image_name, image, label in self.EvalSet.iterator():
+            pre_ind, pre_conf, des_ind, des_conf = self.get_conf_and_class("hovno", image)
             logging.debug("Processing images: " + image_name)
 
             for original_layer, original_layers_name, masked_layers, masked_layers_name in zip(original_layers, masked_layers):
                 logging.debug("Processing layer: " + original_layers_name)
                 weights = masked_layers.weight.cpu().detach().numpy()
+                indices = self.get_layers_filter_position(weights)
 
-                for each_filter in tqdm(range(weights)):
+                for each_filter in tqdm(range(indices)):
                     # mask the related neuron
                     self.mask_filter_layer(weights, [each_filter])
                     output = self.MappedModel(image)
@@ -239,7 +256,6 @@ class SafetyAlgorithm():
         with open(dictionary_path, 'r') as fp:
             data = json.load(fp)
         print(data)
-
 
     def analyse_accuracy_of_masked_model(self, _files_path, _path_benchmark, _models, _classes, worst_neurons_dict, _n_worst=20):
         temp_worst_neurons = dict()
