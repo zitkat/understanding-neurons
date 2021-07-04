@@ -1,0 +1,18 @@
+Key;Dtype;Default;v1
+:Group:;str;iterator;iterator
+model_name;str;"seresnext50_32x4d";"seresnext50_32x4d"
+stages;;["finetuned"];["finetuned"]
+modes;;["neuron", "channel"];["neuron", "channel"]
+:Group:;str;render;render
+batch_size;int;6;6
+image_size;Union[Tuple[int, int]];(100,);(100,)
+optimizer;;None;None
+transforms;;transforms;transforms
+thresholds;Union[Tuple[int, int]];(512,);(512,)
+verbose;bool;False;False
+preprocess;bool;True;True
+show_image;bool;False;False
+save_image;bool;False;False
+image_name;bool;None;None
+show_inline;bool;False;False
+fixed_image_size;;None;None

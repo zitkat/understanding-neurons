@@ -1,0 +1,15 @@
+Bootstrap: docker
+From: nvidia/pytorch:21.03-py3
+Registry: nvcr.io
+
+
+%post
+  pip install timm
+  pip install seaborn
+
+  # lucent requirements
+  pip install pytest_mock kornia==0.4.1 coveralls
+
+%labels
+  Author zitkat
+  Note "Added timm and seaborn, also some requirements for lucent"
