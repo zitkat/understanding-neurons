@@ -73,7 +73,7 @@ def split_seresnext_labels(df):
 
 def load_npy_fvs(input_path: Path, mode="neurons", version="v1"):
     data_paths = list(input_path.glob(f"{mode}*{version}*.npy"))
-    data_list = [np.load(dpath) for dpath in data_paths]
+    data_list = [np.load(dpath, allow_pickle=True) for dpath in data_paths]
     data_labels = sum(([dpth.name[:-4],] * len(d)
                        for dpth, d in zip(data_paths, data_list)),
                       start=[])

@@ -104,7 +104,7 @@ flipped_femb = np.array([1 , -1]) * fembedding
 min_length = min(idata.shape[0], pdata.shape[0], fdata.shape[0])
 
 # %%
-f_df = split_seresnext_labels(pd.DataFrame(dict(x=flipped_femb[:min_length, 0], 
+f_df = splito_seresnext_labels(pd.DataFrame(dict(x=flipped_femb[:min_length, 0], 
                                       y=flipped_femb[:min_length, 1], 
                                       label=labels[:min_length], 
                                       network="fine")))

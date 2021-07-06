@@ -176,11 +176,14 @@ def plot_parametrized_var(df,
     fig.subplots_adjust(hspace=.2, wspace=.2)
 
     axs = wrap_axes(axs, ncol, nrow)
+    axs_dict = {}
 
     # Call mark-color variable display for rows and columns
     for ii, (row_val, row_filt) in enumerate(iter_rows()):
         for jj, (col_val, clm_filt) in enumerate(iter_columns()):
             ax = axs[ii][jj]
+            axs_dict[(row_val, col_val)] = ax
+
             ax.set_title(f"{row_lab}: {row_val}, {clm_lab}: {col_val}")
             color_vals, olines, omarks = \
                 display_colormarked_var(ax, fig,
@@ -216,10 +219,7 @@ def plot_parametrized_var(df,
             cbar_ax_rect = kwargs.pop("cbar_rect", [0.805, 0.15, 0.01, 0.7])
             cbar_ax = fig.add_axes(cbar_ax_rect)
             fig.colorbar(olines, cax=cbar_ax).set_label(cor_lab)
-
-
-
-    return fig, axs
+    return fig, axs_dict
 
 # %% Feature visualizations plots
 def show_fvs(fv_array, ns, max_cols=4):
