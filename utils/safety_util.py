@@ -7,21 +7,22 @@ import json
 import datetime
 from tqdm import tqdm
 import matplotlib.pyplot as plt
+import torch
 
 plt.rcParams.update({'figure.max_open_warning': 0})
 
 
 class SafetyAnalysis:
 
-    def __init__(self, MappedModel, EvalSet):
+    def __init__(self, MappedModel, DataSet):
         super().__init__()
 
         self.feature_map_dict = {}
         self.fm_sum_responses_dict = {}
         self.statistics_dict = collections.defaultdict(list)
 
-        self.EvalSet = EvalSet()
-        self.MappedModel = MappedModel()
+        self.DataSet = DataSet
+        self.MappedModel = MappedModel
         self.original_layers = copy.deepcopy(self.MappedModel.renderable_layers)
 
         self.criticality_tau = 0.5
@@ -48,42 +49,45 @@ class SafetyAnalysis:
 
     @staticmethod
     def get_layers_filter_position(_weights)-> int:
-        if len(_weights.shape) == 4:  # to filter only depth separable and conv layers
-            if _weights.shape[3] == 1:
-                return 2
+        if len(_weights.shape) == 4:
+            # point-wise
+            if _weights.shape[2] == 1 and _weights.shape[3] == 1:
+                return _weights.shape[0]
+            elif _weights.shape[1] == 1:
+                return _weights.shape[0]
+            # depth-wise
             else:
-                return 3
+                return _weights.shape[0]
 
         # to filter only dense layers
         elif len(_weights.shape) == 2:
-           return 1
+           return _weights.shape[0]
 
         else:
             return None
 
     @staticmethod
     def demask_filter_layer(_weights, _original_weights):
-        _weights = _original_weights
+        _weights = copy.deepcopy(_original_weights)
 
     @staticmethod
     def mask_filter_layer(_weights, _indices):
         if len(_weights.shape) == 4:  # to filter only depth separable and conv layers
 
-            if _weights.shape[3] == 1:
+            if _weights.shape[2] == 1 and _weights.shape[3] == 1:
                 for filters in _indices:
-                    _weights[:, :, filters, :] = 0.0
-
+                    _weights[filters, :, :, :] = 0.0
+            elif _weights.shape[1] == 1:
+                for filters in _indices:
+                    _weights[filters, :, :, :] = 0.0
             else:
-                if _weights.shape[3] < max(_indices):
-                    logging.error("Wrong filter index - layer contains less filters.")
-                else:
-                    for filters in _indices:
-                        _weights[:, :, :, filters] = 0.0
+                for filters in _indices:
+                    _weights[filters, :, :, :] = 0.0
 
         # to filter only dense layers
         elif len(_weights.shape) == 2:
            for neurons in _indices:
-                _weights[:, neurons] = 0.0
+                _weights[neurons, :] = 0.0
 
     @staticmethod
     def calculate_criticality_adversary(des_adv_conf, new_conf, adv_ind, new_ind, ori_ind, adv_ori_conf, criticality_tau):
@@ -110,32 +114,33 @@ class SafetyAnalysis:
 
     @staticmethod
     def calculate_criticality_classification(
-            groundtruth_conf: float,
-            masked_conf: float,
-            goundtruth_index: int,
-            masked_index: int,
-            criticality_tau: float) -> float:
+            groundtruth_conf: list,
+            masked_conf: list,
+            goundtruth_index: list,
+            masked_index: list,
+            criticality_tau: float) -> list:
 
-        criticality = 0.0
+        criticality = list()
+        for index in range(len(groundtruth_conf)):
 
-        # 1 case:
-        """ if the new prediction has smaller confidence than original one """
-        if ((groundtruth_conf - masked_conf) > criticality_tau) \
-                and \
-                (goundtruth_index == masked_index):
-            criticality = groundtruth_conf - masked_conf
+            # 1 case:
+            """ if the new prediction has smaller confidence than original one """
+            if ((groundtruth_conf[index] - masked_conf[index]) > criticality_tau) \
+                    and \
+                    (goundtruth_index[index] == masked_index[index]):
+                criticality.append(groundtruth_conf[index] - masked_conf[index])
 
-        # 2 case:
-        elif goundtruth_index != masked_index:
-            if masked_conf > 0.5:
-                criticality = 2.0 # clip the criticality to 2
+            # 2 case:
+            elif goundtruth_index[index] != masked_index[index]:
+                if masked_conf[index] > 0.5:
+                    criticality.append(2.0) # clip the criticality to 2
+                else:
+                    criticality.append(1 / (1 - masked_conf[index]))
+
+            # 3 case:
             else:
-                criticality = 1 / (1 - masked_conf)
-
-        # 3 case:
-        else:
-            # Anti critical neurons, the criticality should be negative
-            criticality = groundtruth_conf - masked_conf
+                # Anti critical neurons, the criticality should be negative
+                criticality.append(groundtruth_conf[index] - masked_conf[index])
 
         return criticality
 
@@ -162,21 +167,19 @@ class SafetyAnalysis:
 
         return criticality_cc + criticality_dc
 
-    def get_conf_and_class(self, des_cls: int, input_batch: dict, remove=False):
+    def get_conf_and_class(self, des_cls, input_batch, remove=False):
 
         # Get outputs from chosen layers and calculate maximum responses
         output = self.MappedModel(input_batch)
-        if len(output.shape) > 1:
-            output_layer = output[0]
-        else:
-            output_layer = output
+        probabilities = torch.nn.functional.softmax(output, dim=1)
+        probabilities = probabilities.cpu().detach().numpy()
 
-        pre_ind = np.argmax(output_layer)
-        pre_conf = np.max(output_layer)
-        pre_cls = self.EvalSet.list_of_classes_labels[pre_ind]
+        pre_ind = np.argmax(probabilities, axis=1)
+        pre_conf = np.max(probabilities, axis=1)
+        pre_cls = [self.DataSet.list_of_classes_labels[index] for index in pre_ind]
 
-        des_ind = self.EvalSet.list_of_classes_labels.index(des_cls)
-        des_conf = output_layer[des_ind]
+        des_ind = [self.DataSet.list_of_classes_labels.index(index) for index in des_cls]
+        des_conf = [probabilities[index][label_index] for index, label_index in enumerate(des_ind)]
 
         #if ((des_cls != pre_cls) or (des_cls == pre_cls and pre_conf < 0.5)) and remove == True:
         #    os.remove(os.path.join( path, file_name))
@@ -193,49 +196,56 @@ class SafetyAnalysis:
         statistics_dict_temp = collections.defaultdict(list)
         statistics_dict_json = collections.defaultdict(list)
 
-        original_layers = copy.deepcopy(self.MappedModel.renderable_layers)
+        statistics_path = os.path.join("data", "statistics_dict.json")
         masked_layers = self.MappedModel.renderable_layers
+        with torch.no_grad():
 
-        for image_name, image, label in self.EvalSet.iterator():
-            pre_ind, pre_conf, des_ind, des_conf = self.get_conf_and_class("hovno", image)
-            logging.debug("Processing images: " + image_name)
+            for batch_name, batch, label in self.DataSet.dataset_iterator():
+                #image_tensor = torch.FloatTensor(np.expand_dims(image, axis=0))
+                batch_tensor = torch.FloatTensor(batch)
+                pre_ind, pre_conf, des_ind, des_conf = self.get_conf_and_class(label, batch_tensor)
+                logging.error("Processing batch: " + batch_name)
 
-            for original_layer, original_layers_name, masked_layers, masked_layers_name in zip(original_layers, masked_layers):
-                logging.debug("Processing layer: " + original_layers_name)
-                weights = masked_layers.weight.cpu().detach().numpy()
-                indices = self.get_layers_filter_position(weights)
 
-                for each_filter in tqdm(range(indices)):
-                    # mask the related neuron
-                    self.mask_filter_layer(weights, [each_filter])
-                    output = self.MappedModel(image)
-                    # outputs_dict[each_layer].append({str(each_filter): output})
-                    if len(output.shape) > 1:
-                        output_layer = output[0]
-                    else:
-                        output_layer = output
-                    new_ind = np.argmax(output_layer)
-                    new_conf = output_layer[new_ind]
+                for original_layers_name in masked_layers.keys():
+                    logging.error("Processing layer: " + original_layers_name)
+                    weights = masked_layers[original_layers_name].weight.data
+                    original_weights = copy.deepcopy(masked_layers[original_layers_name].weight.cpu().detach())
+                    indices = self.get_layers_filter_position(weights)
+                    #print(weights.shape)
 
-                    criticality = self.calculate_criticality_classification(des_conf,
-                                                                            new_conf,
-                                                                            des_ind,
-                                                                            new_ind,
-                                                                            self.criticality_tau)
+                    for each_filter in tqdm(range(indices)):
+                        # mask the related neuron
+                        self.mask_filter_layer(masked_layers[original_layers_name].weight.data, [each_filter])
+                        output = self.MappedModel(batch_tensor)
 
-                    statistics_dict_temp[original_layers_name].append({str(each_filter): criticality})
-                    statistics_dict_json[original_layers_name].append({str(each_filter): str(criticality)})
+                        probabilities = torch.nn.functional.softmax(output, dim=1)
+                        probabilities = probabilities.cpu().detach().numpy()
 
-                # have to demask filter only at the end of the layer iteration
-                self.demask_filter_layer(masked_layers, original_layer)
+                        new_ind = np.argmax(probabilities, axis=1)
+                        new_conf = np.max(probabilities, axis=1)
 
-            self.logger.debug(" ----------- CDPA finished ----------- ")
+                        criticality = self.calculate_criticality_classification(des_conf,
+                                                                                new_conf,
+                                                                                des_ind,
+                                                                                new_ind,
+                                                                                self.criticality_tau)
+                        #logging.error("Criticality: " + str(criticality))
 
-            self.statistics_dict[image_name].append(statistics_dict_json)
+                        statistics_dict_temp[original_layers_name].append({str(each_filter): criticality})
+                        for cri in criticality:
+                            statistics_dict_json[original_layers_name].append({str(each_filter): str(cri)})
 
-        # dictionary_path = os.path.join("data", "statistics_dict" + _model_name + image_name + ".json")
-        # with open(dictionary_path, 'w') as fp:
-        #    json.dump(statistics_dict_json, fp)
+                        # have to return back the weights at each kernel weight masking
+                        #self.demask_filter_layer(weights, original_weights)
+                        masked_layers[original_layers_name].weight.data = copy.deepcopy(original_weights)
+
+                self.statistics_dict[batch_name].append(statistics_dict_json)
+                with open(statistics_path, 'w') as fp:
+                    json.dump(self.statistics_dict, fp)
+
+        self.logger.debug(" ----------- CDPA finished ----------- ")
+
         conv_dict = collections.defaultdict(list)
         proj_dict = collections.defaultdict(list)
         for layers_name in statistics_dict_temp.keys():
@@ -255,7 +265,7 @@ class SafetyAnalysis:
         dictionary_path = os.path.join("data", "statistics_dict" + image_name + ".json")
         with open(dictionary_path, 'r') as fp:
             data = json.load(fp)
-        print(data)
+        #print(data)
 
     def analyse_accuracy_of_masked_model(self, _files_path, _path_benchmark, _models, _classes, worst_neurons_dict, _n_worst=20):
         temp_worst_neurons = dict()

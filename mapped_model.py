@@ -122,16 +122,20 @@ def build_layers_dict(module : nn.Module):
 
 if __name__ == '__main__':
     from utils.model_util import get_timm_model
+    import timm
 
-    model = get_timm_model("seresnext50_32x4d", target_size=5, pretrained=True)
+    #model = get_timm_model("mobilenetv3_rw", target_size=1000, pretrained=True)
+    model = timm.create_model("mobilenetv3_rw", pretrained=True)
+    #model = timm.create_model('efficientnet_b0', pretrained=True)
+    #model = timm.create_model('resnet18', pretrained=True)
     #net_dict = torch.load("data/models/seresnext50_32x4d_0_best.pth")
     #model.load_state_dict(net_dict)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     mmodel = MappedModel(model).eval().to(device)
-
+    print(model)
     dataset = DataSet()
     safety_analysis = SafetyAnalysis(mmodel, dataset)
-
+    safety_analysis.analyse_criticality_via_plain_masking()
 
     all_layers = list(mmodel.layers.keys())
     rendered_path = Path("data/pretrained_seresnext50_32x4d/npys")
