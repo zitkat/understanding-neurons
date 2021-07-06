@@ -77,7 +77,14 @@ def batch_indices(indcs : List, batch_size : int):
         end += batch_size
 
 
-def get_timm_model(architecture_name, target_size, pretrained=False):
+def get_timm_classfier(architecture_name : str, target_size : int, pretrained : bool = False) -> nn.Module:
+    """
+    Gets model from timm with new classifier with target_size classes
+    :param architecture_name: see list of models available from timm
+    :param target_size: number of classes of the new classifier
+    :param pretrained: get pretrained weights for feature extractor
+    :return: new model classifier with target_size output classes
+    """
     net = timm.create_model(architecture_name, pretrained=pretrained)
     net_cfg = net.default_cfg
     last_layer = net_cfg['classifier']
