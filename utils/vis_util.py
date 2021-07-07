@@ -18,9 +18,9 @@ def get_unit_from_labels(labels: np.ndarray, layer_name, n, prefix="neurons", su
     return nidx
 
 
-def pretty_layer_label(layer_name, n=None):
+def pretty_layer_label(layer_name, n=None, sep="-"):
     """Pretty prints layer name"""
-    parts = layer_name.split("-")
+    parts = layer_name.split(sep)
     if len(parts) <= 3:
         return parts[1]
     return f"L{parts[1][-1]}.{parts[2]} Conv {parts[3][-1]} : {none2str(n)}"
@@ -73,7 +73,7 @@ def split_seresnext_labels(df):
 
 def load_npy_fvs(input_path: Path, mode="neurons", version="v1"):
     data_paths = list(input_path.glob(f"{mode}*{version}*.npy"))
-    data_list = [np.load(dpath) for dpath in data_paths]
+    data_list = [np.load(dpath, allow_pickle=True) for dpath in data_paths]
     data_labels = sum(([dpth.name[:-4],] * len(d)
                        for dpth, d in zip(data_paths, data_list)),
                       start=[])

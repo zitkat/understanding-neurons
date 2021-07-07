@@ -7,6 +7,7 @@ __email__ = "zitkat@kky.zcu.cz"
 import numpy as np
 
 import matplotlib.pyplot as plt
+import pandas as pd
 from matplotlib.lines import Line2D
 from matplotlib.offsetbox import (TextArea, OffsetImage,
                                   AnnotationBbox)
@@ -70,8 +71,9 @@ def plot_colormarked_var(ax, fig, df,
     """
     olines = []
     color_vals = df[color_var].unique()
-    cm = kwargs.pop("color_map", plt.cm.viridis)
+    cm = kwargs.pop("color_map", plt.cm.viridis)  # TODO unify colormap treatment
     colors = cm(np.linspace(0, 1, len(color_vals)))[::-1]
+    omarks = None
     for cc, color_val in enumerate(color_vals):
         omarks = _plot_marked_var(df[df[color_var] == color_val],
                                   mk_var=mk_var,
@@ -137,14 +139,18 @@ def wrap_axes(axs, ncol, nrow):
     return axs
 
 
-def plot_parametrized_var(df,
+def plot_parametrized_var(df : pd.DataFrame,
                           x_var, y_var,
                           column_var=None, row_var=None,
                           color_var=None, mk_var=None,
                           display_colormarked_var=plot_colormarked_var,
                           **kwargs):
     """
-    # TODO documentation and usage example
+    This functions serves to display results of parametric study organized into pandas DataFrame,
+    each column of the DataFrame can represent different dimension of visuailzatio, changing over:
+    columns/rows of axes grid, colors/markers of plotted elements, and xy coordinates. With exception
+    of x_var and y_var, variables are optional and can be omitted or replaced with None.
+
     :param df:
     :param x_var:
     :param y_var:
@@ -152,9 +158,19 @@ def plot_parametrized_var(df,
     :param row_var:
     :param color_var:
     :param mk_var:
-    :param display_colormarked_var:
-    :param kwargs:
-    :return:
+    :param display_colormarked_var: a function
+        (ax, fig, df, color_var, mk_var, x_var, y_var) -> color_vals, olines, omarks
+        see scatter_colormarked_var or plot_colormarked_var
+    :param kwargs: following kwargs are supported: x_lab, y_lab, column_lab, row_lab, color_lab,
+        mk_lab, figsize;
+        marks_leg_rect : for adjusting markers legend position , default [0.55, .07, 0.01, 0.01];
+        lines_leg_rect : for adjusting lines legend position, default [0, .07, 0.01, 0.01];
+        lines_ncol: number of columns in line legend;
+        cbar_rect : for adjusting colorbar position, mutually exclusive with lines_leg_rect,
+        default [0.805, 0.15, 0.01, 0.7];
+        whatewer kwargs display_colormarked_var supports
+
+    :return: figure and dictionary of axes indexed by (column, row) tuple
     """
 
     ncol, iter_columns = get_var_filter_iter(df, column_var)
@@ -168,17 +184,28 @@ def plot_parametrized_var(df,
     cor_lab = kwargs.pop("color_lab", none2str(color_var))
     mk_lab = kwargs.pop("mk_lab", none2str(mk_var))
 
+    marks_ax_rect = kwargs.pop("marks_leg_rect", [0.55, .07, 0.01, 0.01])
+    lines_ax_rect = kwargs.pop("lines_leg_rect", [0, .07, 0.01, 0.01])
+    lines_n_col = kwargs.pop("lines_ncol", 3)
+    cbar_ax_rect = kwargs.pop("cbar_rect", [0.805, 0.15, 0.01, 0.7])
+
     figsize = kwargs.pop("figsize", (ncol * 4, nrow * 4))
     fig, axs = plt.subplots(nrows=nrow, ncols=ncol,
                             figsize=figsize)
     fig.subplots_adjust(hspace=.2, wspace=.2)
 
     axs = wrap_axes(axs, ncol, nrow)
+    axs_dict = {}
 
     # Call mark-color variable display for rows and columns
     for ii, (row_val, row_filt) in enumerate(iter_rows()):
         for jj, (col_val, clm_filt) in enumerate(iter_columns()):
             ax = axs[ii][jj]
+            axs_dict[(row_val, col_val)] = ax
+
+
+            # TODO add option to force axes extent
+
             ax.set_title(f"{row_lab}: {row_val}, {clm_lab}: {col_val}")
             color_vals, olines, omarks = \
                 display_colormarked_var(ax, fig,
@@ -191,7 +218,6 @@ def plot_parametrized_var(df,
                 ax.set_xlabel(x_lab)
 
     if mk_var is not None:
-        marks_ax_rect = kwargs.pop("marks_leg_rect", [0.55, .07, 0.01, 0.01])
         marks_ax = fig.add_axes(marks_ax_rect)
         marks_ax.set_axis_off()
 
@@ -199,25 +225,22 @@ def plot_parametrized_var(df,
                         labels=sorted(df[mk_var].unique()),
                         title=mk_lab, ncol=len(omarks),
                         borderaxespad=0., loc="upper center")
+        axs_dict.update(dict(markers_legend=marks_ax))
 
     if color_var is not None:
         if color_vals is not None:
-            lines_ax_rect = kwargs.pop("lines_leg_rect", [0, .07, 0.01, 0.01])
             lines_ax = fig.add_axes(lines_ax_rect)
             lines_ax.set_axis_off()
-            lines_n_col = kwargs.pop("lines_ncol", 3)
             lines_ax.legend(handles=olines,
                             labels=["{}".format(cval) for cval in color_vals],
                             title=cor_lab, ncol=lines_n_col,
                             borderaxespad=0., loc="upper center")
+            axs_dict.update(dict(lines_legend=lines_ax))
         else:
-            cbar_ax_rect = kwargs.pop("cbar_rect", [0.805, 0.15, 0.01, 0.7])
             cbar_ax = fig.add_axes(cbar_ax_rect)
             fig.colorbar(olines, cax=cbar_ax).set_label(cor_lab)
-
-
-
-    return fig, axs
+            axs_dict.update(dict(cbar=cbar_ax))
+    return fig, axs_dict
 
 # %% Feature visualizations plots
 def show_fvs(fv_array, ns, max_cols=4):
