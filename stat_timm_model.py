@@ -11,7 +11,7 @@ from pathlib import Path
 import torch
 import timm
 
-from utils.model_util import get_timm_model
+from utils.model_util import get_timm_classfier
 from multi_renders import stat_model
 from settings import load_settings
 from utils.process_util import plogger, add_plog_file, now
@@ -43,7 +43,7 @@ def main(model_name: str, model_weights: str,
     if model_weights.endswith(".pth"):
         model_weights = Path(model_weights)
         name = model_weights.stem
-        model = get_timm_model(model_name, target_size=5)
+        model = get_timm_classfier(model_name, target_size=5)
         net_dict = torch.load(model_weights)
         model.load_state_dict(net_dict)
     elif model_weights == "pretrained":
@@ -52,11 +52,11 @@ def main(model_name: str, model_weights: str,
         save_path = output / (model_name + "_init.pth")
         if save_path.exists():
             plogger.info(f"Loading existing initialization from {save_path}")
-            model = get_timm_model(model_name, target_size=5)
+            model = get_timm_classfier(model_name, target_size=5)
             net_dict = torch.load(save_path)
             model.load_state_dict(net_dict)
         else:
-            model = get_timm_model(model_name, pretrained=False, target_size=5)
+            model = get_timm_classfier(model_name, target_size=5, pretrained=False)
             torch.save(model.cpu().state_dict(), save_path)
     else:
         plogger.error(f"Unknown option for model weights {model_weights} terminating!")
