@@ -48,14 +48,11 @@ class DataSet:
                                _resize=True,
                                _normalize=True,
                                _channels_last=False,
-                               _batch_size=16,
+                               _batch_size=150,
                                _width=224, _height=224, _channels=3):
 
         valid_images = [".jpg", ".png"]
         valid_numpy = [".npy", ".npz"]
-
-        batch_image = list()
-        batch_label = list()
         batch_index = 0
         folders = [x for x in os.listdir(_path_dataset) if not x.startswith('.')]
         folders.sort()
@@ -66,6 +63,8 @@ class DataSet:
         # print(files)
 
         for class_name, file_names in files.items():
+            batch_image = list()
+            batch_label = list()
             for index, file_name in enumerate(file_names[0]):
                 # import raw images and resize them
                 ext = os.path.splitext(file_name)[-1]

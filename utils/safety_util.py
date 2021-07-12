@@ -189,34 +189,37 @@ class SafetyAnalysis:
 
         return pre_ind, pre_conf, des_ind, des_conf
 
-    def analyse_criticality_via_plain_masking(self):
+    def analyse_criticality_via_plain_masking(self, device):
 
         self.logger.debug(" ----------- Starting the CDPA_plain_masking ----------- ")
-
-        statistics_dict_temp = collections.defaultdict(list)
-        statistics_dict_json = collections.defaultdict(list)
 
         statistics_path = os.path.join("data", "statistics_dict.json")
         masked_layers = self.MappedModel.renderable_layers
         with torch.no_grad():
 
             for batch_name, batch, label in self.DataSet.dataset_iterator():
-                #image_tensor = torch.FloatTensor(np.expand_dims(image, axis=0))
-                batch_tensor = torch.FloatTensor(batch)
+                # image_tensor = torch.FloatTensor(np.expand_dims(image, axis=0))
+                batch_tensor = torch.FloatTensor(batch).to(device)
                 pre_ind, pre_conf, des_ind, des_conf = self.get_conf_and_class(label, batch_tensor)
-                logging.error("Processing batch: " + batch_name)
-
 
                 for original_layers_name in masked_layers.keys():
                     logging.error("Processing layer: " + original_layers_name)
+                    layer_stats = collections.defaultdict(list)
+                    layer_stats_json = collections.defaultdict(list)
+
                     weights = masked_layers[original_layers_name].weight.data
-                    original_weights = copy.deepcopy(masked_layers[original_layers_name].weight.cpu().detach())
+                    #original_weights = copy.deepcopy(masked_layers[original_layers_name].weight.cpu().detach())
+                    original_weights = copy.deepcopy(weights)
                     indices = self.get_layers_filter_position(weights)
                     #print(weights.shape)
 
                     for each_filter in tqdm(range(indices)):
+                        filter_stats = collections.defaultdict(list)
+                        filter_stats_json = collections.defaultdict(list)
                         # mask the related neuron
                         self.mask_filter_layer(masked_layers[original_layers_name].weight.data, [each_filter])
+
+                        #logging.error("Processing batch: " + batch_name)
                         output = self.MappedModel(batch_tensor)
 
                         probabilities = torch.nn.functional.softmax(output, dim=1)
@@ -225,36 +228,27 @@ class SafetyAnalysis:
                         new_ind = np.argmax(probabilities, axis=1)
                         new_conf = np.max(probabilities, axis=1)
 
-                        criticality = self.calculate_criticality_classification(des_conf,
+                        criticality = self.calculate_criticality_classification(pre_conf,
                                                                                 new_conf,
-                                                                                des_ind,
+                                                                                pre_ind,
                                                                                 new_ind,
                                                                                 self.criticality_tau)
                         #logging.error("Criticality: " + str(criticality))
+                        for lab, cri in zip(label, criticality):
+                            filter_stats[lab].append(cri)
+                            filter_stats_json[lab].append(str(cri))
 
-                        statistics_dict_temp[original_layers_name].append({str(each_filter): criticality})
-                        for cri in criticality:
-                            statistics_dict_json[original_layers_name].append({str(each_filter): str(cri)})
+                        layer_stats[each_filter].append(filter_stats)
+                        layer_stats_json[each_filter].append(filter_stats_json)
 
                         # have to return back the weights at each kernel weight masking
-                        #self.demask_filter_layer(weights, original_weights)
                         masked_layers[original_layers_name].weight.data = copy.deepcopy(original_weights)
 
-                self.statistics_dict[batch_name].append(statistics_dict_json)
-                with open(statistics_path, 'w') as fp:
-                    json.dump(self.statistics_dict, fp)
+                    self.statistics_dict[original_layers_name].append(layer_stats_json)
+                    with open(statistics_path, 'w') as fp:
+                        json.dump(self.statistics_dict, fp)
 
         self.logger.debug(" ----------- CDPA finished ----------- ")
-
-        conv_dict = collections.defaultdict(list)
-        proj_dict = collections.defaultdict(list)
-        for layers_name in statistics_dict_temp.keys():
-            if "project" in layers_name:
-                for indices_dict in statistics_dict_temp[layers_name]:
-                    proj_dict[layers_name].append(indices_dict)
-            else:
-                for indices_dict in statistics_dict_temp[layers_name]:
-                    conv_dict[layers_name].append(indices_dict)
 
         #self.fun.plot_CDP_results(_path, proj_dict, image_name, _model_name, des_cls, self.dict_of_weights, self.criticality_tau, "project", _adversary=adversary)
         #self.fun.plot_CDP_results(_path, conv_dict, image_name, _model_name, des_cls, self.dict_of_weights, self.criticality_tau, "conv", _adversary=adversary)

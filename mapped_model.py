@@ -131,11 +131,12 @@ if __name__ == '__main__':
     #net_dict = torch.load("data/models/seresnext50_32x4d_0_best.pth")
     #model.load_state_dict(net_dict)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
     mmodel = MappedModel(model).eval().to(device)
     print(model)
     dataset = DataSet()
     safety_analysis = SafetyAnalysis(mmodel, dataset)
-    safety_analysis.analyse_criticality_via_plain_masking()
+    safety_analysis.analyse_criticality_via_plain_masking(device)
 
     all_layers = list(mmodel.layers.keys())
     rendered_path = Path("data/pretrained_seresnext50_32x4d/npys")
