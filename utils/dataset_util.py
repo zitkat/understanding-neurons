@@ -48,7 +48,7 @@ class DataSet:
                                _resize=True,
                                _normalize=True,
                                _channels_last=False,
-                               _batch_size=128,
+                               _batch_size=16,
                                _width=224, _height=224, _channels=3):
 
         valid_images = [".jpg", ".png"]
