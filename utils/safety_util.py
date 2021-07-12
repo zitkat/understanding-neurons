@@ -191,6 +191,9 @@ class SafetyAnalysis:
 
     def analyse_criticality_via_plain_masking(self, device):
 
+        def nested_dict():
+            return collections.defaultdict(nested_dict)
+
         self.logger.debug(" ----------- Starting the CDPA_plain_masking ----------- ")
 
         statistics_path = os.path.join("data", "statistics_dict.json")
@@ -204,8 +207,8 @@ class SafetyAnalysis:
 
                 for original_layers_name in masked_layers.keys():
                     logging.error("Processing layer: " + original_layers_name)
-                    layer_stats = collections.defaultdict(list)
-                    layer_stats_json = collections.defaultdict(list)
+                    layer_stats = nested_dict()
+                    layer_stats_json = nested_dict()
 
                     weights = masked_layers[original_layers_name].weight.data
                     #original_weights = copy.deepcopy(masked_layers[original_layers_name].weight.cpu().detach())
@@ -214,8 +217,8 @@ class SafetyAnalysis:
                     #print(weights.shape)
 
                     for each_filter in tqdm(range(indices)):
-                        filter_stats = collections.defaultdict(list)
-                        filter_stats_json = collections.defaultdict(list)
+                        #filter_stats = collections.defaultdict(dict)
+                        #filter_stats_json = collections.defaultdict(dict)
                         # mask the related neuron
                         self.mask_filter_layer(masked_layers[original_layers_name].weight.data, [each_filter])
 
@@ -234,12 +237,14 @@ class SafetyAnalysis:
                                                                                 new_ind,
                                                                                 self.criticality_tau)
                         #logging.error("Criticality: " + str(criticality))
-                        for lab, cri in zip(label, criticality):
-                            filter_stats[lab].append(cri)
-                            filter_stats_json[lab].append(str(cri))
+                        #for lab, cri in zip(label, criticality):
+                        #    filter_stats[lab].append(cri)
+                        #    filter_stats_json[lab].append(str(cri))
+                        #for lab, cri in zip(label, criticality):
 
-                        layer_stats[each_filter].append(filter_stats)
-                        layer_stats_json[each_filter].append(filter_stats_json)
+                        layer_stats[each_filter][label[0]] = criticality
+                        criticality_str = [str(cri) for cri in criticality]
+                        layer_stats_json[each_filter][str(label[0])] = criticality_str
 
                         # have to return back the weights at each kernel weight masking
                         masked_layers[original_layers_name].weight.data = copy.deepcopy(original_weights)

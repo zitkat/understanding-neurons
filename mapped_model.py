@@ -7,6 +7,8 @@ __email__ = "zitkat@kky.zcu.cz"
 from collections import OrderedDict
 from typing import TypeVar
 from pathlib import Path
+import os
+import json
 
 import torch
 from lucent.optvis import render
@@ -16,6 +18,7 @@ import multi_renders
 from utils.model_util import iterate_renderable_layers
 from utils.dataset_util import DataSet
 from utils.safety_util import SafetyAnalysis
+from utils.vis_util import plot_cdp_results
 
 
 T = TypeVar('T', bound='MappedModel')
@@ -134,9 +137,12 @@ if __name__ == '__main__':
     model.to(device)
     mmodel = MappedModel(model).eval().to(device)
     print(model)
-    dataset = DataSet()
-    safety_analysis = SafetyAnalysis(mmodel, dataset)
-    safety_analysis.analyse_criticality_via_plain_masking(device)
+    #dataset = DataSet()
+    #safety_analysis = SafetyAnalysis(mmodel, dataset)
+    #safety_analysis.analyse_criticality_via_plain_masking(device)
+    with open(os.path.join("data", "statistics_dict.json")) as f:
+        statistics = json.load(f)
+        plot_cdp_results(os.path.join("data", "generated"), statistics, "mobilenetv3_rw", 0.0 )
 
     all_layers = list(mmodel.layers.keys())
     rendered_path = Path("data/pretrained_seresnext50_32x4d/npys")
