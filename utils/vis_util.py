@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import collections
 import os
 import itertools
 
@@ -89,107 +90,106 @@ def load_npy_fvs(input_path: Path, mode="neurons", version="v1"):
 def plot_cdp_results(_path,
                      _cri_stat_dict,
                      _model_name,
-                     _cri_tau=0.0):
+                     _cri_tau=0.5):
 
-    layer_criticality = list()
-    list_of_layers = list()
+    layers_criticality = collections.defaultdict(list)
     weak_hypothesis = list()
     top_x_neurons = "all"
-
+    layers_name = None
     fig, ax = plt.subplots()
 
-    for each_layer, filters_data in tqdm(_cri_stat_dict.items()):
-        for labels_data in filters_data:
-            kernel_indices = list(labels_data.keys())
+    for label, labels_data in _cri_stat_dict.items():
+        fig_dir = os.path.join(_path, _model_name, label, "criticality")
+        if not os.path.exists(fig_dir):
+            os.makedirs(fig_dir)
+
+        for layers_data in tqdm(labels_data):
+
             criticality_values = list()
+            kernel_indices = list()
 
-            for kernel_index, criticality in labels_data.items():
-                for label, label_criticality in criticality.items():
+            for layers_names, kernels_criticalities in layers_data.items():
+                layers_name = layers_names
+                for kernels_index, kernel_criticality in kernels_criticalities.items():
+                    kernel_indices.append(int(kernels_index))
+                    criticality_values.append(np.mean([float(value) for value in kernel_criticality]))
+                    # criticality_values.append( np.mean(only_critical_neurons) * (max_number_of_weights / len(top_x_values)) )
 
-                    fig_dir = os.path.join(_path, _model_name, label, each_layer, "criticality")
-                    if not os.path.exists(fig_dir):
-                        os.makedirs(fig_dir)
+                if top_x_neurons is "all":
+                    top_x_values = criticality_values
+                    plt.rcParams.update({'font.size': 10})
+                else:
+                    indices = np.argsort(criticality_values)
+                    top_x = indices[-top_x_neurons:]
+                    top_x_values = [criticality_values[index] for index in top_x]
+                    plt.rcParams.update({'font.size': 12})
 
-                    if top_x_neurons is "all":
-                        top_x_values = [float(value) for value in label_criticality]
-                        plt.rcParams.update({'font.size': 10})
+                # criticality pro layer
+                only_critical_neurons = [criticality_value
+                                         for criticality_value in top_x_values if
+                                         criticality_value > _cri_tau]
+
+                #x_pos = np.arange(len(top_x_values))
+                colors = list()
+
+                for values in top_x_values:
+                    if values > _cri_tau:
+                        colors.append('red')
+                        weak_hypothesis.append(layers_name)
+                    elif values > _cri_tau / 2:
+                        colors.append('orange')
+                    elif values > _cri_tau / 10:
+                        colors.append('yellow')
+                    elif values < 0.0:
+                        colors.append('blue')
                     else:
-                        indices = np.argsort(label_criticality)
-                        top_x = indices[-top_x_neurons:]
-                        top_x_values = [float(label_criticality[index]) for index in top_x]
-                        plt.rcParams.update({'font.size': 12})
+                        colors.append('green')
 
-                    # criticality pro layer
-                    only_critical_neurons = [float(criticality_value)
-                                             for criticality_value in top_x_values if
-                                             float(criticality_value) > _cri_tau]
+                ''' --------------------------------------- '''
+                ''' Plotting histogram of L2-norms '''
+                ''' --------------------------------------- '''
+                # clear the previous axis
+                ax.clear()
+                ax.barh(kernel_indices, top_x_values, alpha=0.5, color=colors, align='center')
+                ax.invert_yaxis()  # labels read top-to-bottom
+                ax.set_xlabel('Criticality')
+                ax.set_ylabel('Indices')
+                #ax.set_title("Neural criticality for layer: {} and class: {}".format(each_layer, _class))
 
-                    list_of_layers.append(each_layer)
-                    layer_criticality.append(np.mean(only_critical_neurons))
-                    # layer_criticality.append( np.mean(only_critical_neurons) * (max_number_of_weights / len(top_x_values)) )
+                # fig.suptitle("Neurons\' criticality for class : pedestrian")
+                fig.tight_layout()
+                fig.savefig(os.path.join(fig_dir, layers_name + "_CNA_result.png"))
 
-                    x_pos = np.arange(len(top_x_values))
-                    colors = list()
+                ''' --------------------------------------- '''
+                ''' Plotting histogram of L2-norms '''
+                ''' --------------------------------------- '''
+                # clear the previous axis
+                ax.clear()
+                bin = 100
+                n, bins, patches = ax.hist(top_x_values, bin, density=True, facecolor='g', alpha=0.75)
 
-                    for values in top_x_values:
-                        if values > _cri_tau:
-                            colors.append('red')
-                            weak_hypothesis.append(each_layer)
-                        elif values > _cri_tau / 2:
-                            colors.append('orange')
-                        elif values > _cri_tau / 10:
-                            colors.append('yellow')
-                        elif values < 0.0:
-                            colors.append('blue')
-                        else:
-                            colors.append('green')
+                mean = np.mean(top_x_values)
+                std = np.std(top_x_values)
+                entropy = False
+                if entropy:
+                    newX_top_x_values = top_x_values - mean
+                    newX_top_x_values = newX_top_x_values / std
+                    layers_entropy = entropy(newX_top_x_values, base=2)
+                    ax.text(0, .5, layers_entropy)
 
-                    ''' --------------------------------------- '''
-                    ''' Plotting histogram of L2-norms '''
-                    ''' --------------------------------------- '''
-                    # clear the previous axis
-                    ax.clear()
-                    ax.barh(x_pos, top_x_values, alpha=0.5, color=colors, align='center')
-                    ax.invert_yaxis()  # labels read top-to-bottom
-                    ax.set_xlabel('Criticality')
-                    ax.set_ylabel('Indices')
-                    #ax.set_title("Neural criticality for layer: {} and class: {}".format(each_layer, _class))
+                # ax.set_xlabel('Filter indexes')
+                ax.set_ylabel("Density")
+                #ax.set_title("Histogram of normalized criticality for layer: {} and class: {}".format(each_layer, _class))
 
-                    # fig.suptitle("Neurons\' criticality for class : pedestrian")
-                    fig.tight_layout()
-                    fig.savefig(os.path.join(fig_dir, each_layer + "_CNA_result.png"))
-
-                    ''' --------------------------------------- '''
-                    ''' Plotting histogram of L2-norms '''
-                    ''' --------------------------------------- '''
-                    # clear the previous axis
-                    ax.clear()
-                    bin = 100
-                    n, bins, patches = ax.hist(top_x_values, bin, density=True, facecolor='g', alpha=0.75)
-
-                    mean = np.mean(top_x_values)
-                    std = np.std(top_x_values)
-                    entropy = False
-                    if entropy:
-                        newX_top_x_values = top_x_values - mean
-                        newX_top_x_values = newX_top_x_values / std
-                        layers_entropy = entropy(newX_top_x_values, base=2)
-                        ax.text(0, .5, layers_entropy)
-
-                    # ax.set_xlabel('Filter indexes')
-                    ax.set_ylabel("Density")
-                    #ax.set_title("Histogram of normalized criticality for layer: {} and class: {}".format(each_layer, _class))
-
-                    # ax.grid(True)
-                    fig.savefig(os.path.join(fig_dir, each_layer + "_histogram.png"))
+                # ax.grid(True)
+                fig.savefig(os.path.join(fig_dir, layers_name + "_histogram.png"))
     ''' --------------------------------------- '''
     ''' Plotting models layers criticality '''
     ''' --------------------------------------- '''
-    plot_models_models_criticality(list_of_layers,
-                                   layer_criticality,
-                                   weak_hypothesis,
-                                   _path,
-                                   _model_name)
+    #plot_models_models_criticality(layers_criticality,
+    #                               weak_hypothesis,
+    #                               _path,
+    #                               _model_name)
 
 
 def plot_models_models_criticality(_list_of_layers, layer_criticality, weak_hypothesis, _path, _model_name):

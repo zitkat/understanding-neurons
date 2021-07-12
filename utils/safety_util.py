@@ -242,14 +242,14 @@ class SafetyAnalysis:
                         #    filter_stats_json[lab].append(str(cri))
                         #for lab, cri in zip(label, criticality):
 
-                        layer_stats[each_filter][label[0]] = criticality
+                        layer_stats[original_layers_name][each_filter] = criticality
                         criticality_str = [str(cri) for cri in criticality]
-                        layer_stats_json[each_filter][str(label[0])] = criticality_str
+                        layer_stats_json[original_layers_name][str(each_filter)] = criticality_str
 
                         # have to return back the weights at each kernel weight masking
                         masked_layers[original_layers_name].weight.data = copy.deepcopy(original_weights)
 
-                    self.statistics_dict[original_layers_name].append(layer_stats_json)
+                    self.statistics_dict[label[0]].append(layer_stats_json)
                     with open(statistics_path, 'w') as fp:
                         json.dump(self.statistics_dict, fp)
 

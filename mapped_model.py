@@ -142,7 +142,7 @@ if __name__ == '__main__':
     #safety_analysis.analyse_criticality_via_plain_masking(device)
     with open(os.path.join("data", "statistics_dict.json")) as f:
         statistics = json.load(f)
-        plot_cdp_results(os.path.join("data", "generated"), statistics, "mobilenetv3_rw", 0.0 )
+        plot_cdp_results(os.path.join("data", "generated"), statistics, "mobilenetv3_rw", 0.5 )
 
     all_layers = list(mmodel.layers.keys())
     rendered_path = Path("data/pretrained_seresnext50_32x4d/npys")
