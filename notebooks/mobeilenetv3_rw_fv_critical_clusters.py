@@ -36,7 +36,7 @@ import seaborn as sns
 import pandas as pd
 
 # %%
-from utils import load_npy_fvs, split_mobilenet_labels
+from utils import load_npy_fvs, split_mobilenet_labels, add_criticality_data
 from visualizations import plot_parametrized_var, scatter_colormarked_var
 
 # %% [markdown]
@@ -77,7 +77,7 @@ n_conv_layers = len(all_conv_layers)
 pembedding = np.load((data_path / f"{model_name}_{stage}" / "pemb_v1").with_suffix(".npy"))
 
 # %%
-fig = plt.figure(stage, figsize=(10, 10))
+fig = plt.figure(stage, figsize=(24, 20))
 s = sns.scatterplot(x = pembedding[:, 0], y = pembedding[:, 1], hue=labels, palette="viridis_r")
 
 h,l = s.get_legend_handles_labels()
@@ -92,16 +92,28 @@ sm.set_array([])
 # Remove the legend and add a colorbar
 # plt.gca().get_legend().remove()
 plt.gca().figure.colorbar(sm).set_label("Layer depth")
-
+plt.show()
 
 # %%
 p_df = split_mobilenet_labels(pd.DataFrame(dict(x = pembedding[:, 0],
-                                           y = pembedding[:, 1],
-                                           unit=units,     
-                                           label=labels)))
+                                                y = pembedding[:, 1],
+                                                unit=units,
+                                                label=labels)))
+
+# %% [markdown]
+# ## Load criticalities
+#
+#
+#
 
 # %%
-fig, axs = plot_parametrized_var(p_df, x_var="x", y_var="y",
+p_df = add_criticality_data(p_df, from_json=Path("../data/criticals/mobilenetv3_rw/statistics_dict.json"))
+
+# %%
+p_df = p_df.dropna()
+
+# %%
+fig, axs = plot_parametrized_var(p_df.dropna(), x_var="x", y_var="y",
                                  row_var="block",
                                  column_var="branch", 
                                  color_var="label", color_lab="Depth",
@@ -113,9 +125,6 @@ fig, axs = plot_parametrized_var(p_df, x_var="x", y_var="y",
                                  cbar_rect=[0.95, 0.15, 0.01, 0.7])
 axs[("conv_stem", "0")].set_title("stem")
 axs[("conv_head", "0")].set_title("head")
-
-# %%
-p_df[p_df["se"]].head()
 
 # %%
 fig, axs = plot_parametrized_var(p_df[p_df["se"]], x_var="x", y_var="y",

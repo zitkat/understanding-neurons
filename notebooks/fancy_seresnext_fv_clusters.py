@@ -78,21 +78,21 @@ n_conv_layers
 # %%
 stage = "initialized"
 
-data, labels = load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
+data, labels, _ = load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
 idata = data.reshape((data.shape[0], np.prod(data.shape[1:])))
 iembedding = np.load((data_path / f"{model_name}_{stage}" / "emb_v1").with_suffix(".npy"))
 
 # %%
 stage = "pretrained"
 
-data, labels = load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
+data, labels, _ = load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
 pdata = data.reshape((data.shape[0], np.prod(data.shape[1:])))
 pembedding = np.load((data_path / f"{model_name}_{stage}" / "emb_v1").with_suffix(".npy"))
 
 # %%
 stage = "finetuned"
 
-data, labels =  load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
+data, labels, _ =  load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
 fdata = data.reshape((data.shape[0], np.prod(data.shape[1:])))
 fembedding = np.load((data_path / f"{model_name}_{stage}" / "emb_v1").with_suffix(".npy"))
 flipped_femb = np.array([1 , -1]) * fembedding

@@ -78,21 +78,21 @@ n_conv_layers
 # %%
 stage = "initialized"
 
-data, labels = load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
+data, labels, _ = load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
 idata = data.reshape((data.shape[0], np.prod(data.shape[1:])))
 iembedding = np.load((data_path / f"{model_name}_{stage}" / "emb_v1").with_suffix(".npy"))
 
 # %%
 stage = "pretrained"
 
-data, labels = load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
+data, labels, _ = load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
 pdata = data.reshape((data.shape[0], np.prod(data.shape[1:])))
 pembedding = np.load((data_path / f"{model_name}_{stage}" / "emb_v1").with_suffix(".npy"))
 
 # %%
 stage = "finetuned"
 
-data, labels =  load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
+data, labels, _ =  load_npy_fvs(data_path / f"{model_name}_{stage}" / "npys", mode=mode)
 fdata = data.reshape((data.shape[0], np.prod(data.shape[1:])))
 fembedding = np.load((data_path / f"{model_name}_{stage}" / "emb_v1").with_suffix(".npy"))
 flipped_femb = np.array([1 , -1]) * fembedding
@@ -104,7 +104,7 @@ flipped_femb = np.array([1 , -1]) * fembedding
 min_length = min(idata.shape[0], pdata.shape[0], fdata.shape[0])
 
 # %%
-f_df = splito_seresnext_labels(pd.DataFrame(dict(x=flipped_femb[:min_length, 0], 
+f_df = split_seresnext_labels(pd.DataFrame(dict(x=flipped_femb[:min_length, 0],
                                       y=flipped_femb[:min_length, 1], 
                                       label=labels[:min_length], 
                                       network="fine")))

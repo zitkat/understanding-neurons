@@ -242,6 +242,7 @@ def plot_parametrized_var(df : pd.DataFrame,
             axs_dict.update(dict(cbar=cbar_ax))
     return fig, axs_dict
 
+
 # %% Feature visualizations plots
 def show_fvs(fv_array, ns, max_cols=4):
     """
