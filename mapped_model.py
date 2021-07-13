@@ -7,6 +7,8 @@ __email__ = "zitkat@kky.zcu.cz"
 from collections import OrderedDict
 from typing import TypeVar
 from pathlib import Path
+import os
+import json
 
 import torch
 from lucent.optvis import render
@@ -14,6 +16,9 @@ from torch import nn
 
 import multi_renders
 from utils.model_util import iterate_renderable_layers
+from utils.dataset_util import DataSet
+from utils.safety_util import SafetyAnalysis
+from utils.vis_util import plot_cdp_results
 
 
 T = TypeVar('T', bound='MappedModel')
@@ -120,12 +125,24 @@ def build_layers_dict(module : nn.Module):
 
 if __name__ == '__main__':
     from utils.model_util import get_timm_model
+    import timm
 
-    model = get_timm_model("seresnext50_32x4d", target_size=5)
-    net_dict = torch.load("data/models/seresnext50_32x4d_0_best.pth")
-    model.load_state_dict(net_dict)
-    mmodel = MappedModel(model).eval().to(0)
-
+    #model = get_timm_model("mobilenetv3_rw", target_size=1000, pretrained=True)
+    model = timm.create_model("mobilenetv3_rw", pretrained=True)
+    #model = timm.create_model('efficientnet_b0', pretrained=True)
+    #model = timm.create_model('resnet18', pretrained=True)
+    #net_dict = torch.load("data/models/seresnext50_32x4d_0_best.pth")
+    #model.load_state_dict(net_dict)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    mmodel = MappedModel(model).eval().to(device)
+    print(model)
+    #dataset = DataSet()
+    #safety_analysis = SafetyAnalysis(mmodel, dataset)
+    #safety_analysis.analyse_criticality_via_plain_masking(device)
+    with open(os.path.join("data", "statistics_dict.json")) as f:
+        statistics = json.load(f)
+        plot_cdp_results(os.path.join("data", "generated"), statistics, "mobilenetv3_rw", 0.5)
 
     all_layers = list(mmodel.layers.keys())
     rendered_path = Path("data/pretrained_seresnext50_32x4d/npys")
