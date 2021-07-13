@@ -65,6 +65,11 @@ class DataSet:
         for class_name, file_names in files.items():
             batch_image = list()
             batch_label = list()
+
+            # @TBD: predict desired class and remove images with low confidence
+            #if ((des_cls != pre_cls) or (des_cls == pre_cls and pre_conf < 0.5)) and remove:
+            #    os.remove(os.path.join(path, file_name))
+
             for index, file_name in enumerate(file_names[0]):
                 # import raw images and resize them
                 ext = os.path.splitext(file_name)[-1]

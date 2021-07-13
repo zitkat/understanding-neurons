@@ -92,14 +92,16 @@ def plot_cdp_results(_path,
                      _model_name,
                      _cri_tau=0.5):
 
-    layers_criticality = collections.defaultdict(list)
-    weak_hypothesis = list()
-    top_x_neurons = "all"
+    top_x_neurons = 100
     layers_name = None
+
     fig, ax = plt.subplots()
 
     for label, labels_data in _cri_stat_dict.items():
-        fig_dir = os.path.join(_path, _model_name, label, "criticality")
+
+        layers_criticality = collections.defaultdict()
+
+        fig_dir = os.path.join(_path, _model_name, label, "layers_criticality")
         if not os.path.exists(fig_dir):
             os.makedirs(fig_dir)
 
@@ -117,25 +119,24 @@ def plot_cdp_results(_path,
 
                 if top_x_neurons is "all":
                     top_x_values = criticality_values
-                    plt.rcParams.update({'font.size': 10})
+                    top_x_indices = kernel_indices
+                    plt.rcParams.update({'font.size': 8})
                 else:
+                    max_index = min(top_x_neurons, len(criticality_values))
                     indices = np.argsort(criticality_values)
-                    top_x = indices[-top_x_neurons:]
-                    top_x_values = [criticality_values[index] for index in top_x]
-                    plt.rcParams.update({'font.size': 12})
+                    top_x_indices = indices[-max_index:]
+                    top_x_values = [criticality_values[index] for index in top_x_indices]
+                    plt.rcParams.update({'font.size': 6})
 
                 # criticality pro layer
                 only_critical_neurons = [criticality_value
                                          for criticality_value in top_x_values if
                                          criticality_value > _cri_tau]
 
-                #x_pos = np.arange(len(top_x_values))
                 colors = list()
-
                 for values in top_x_values:
                     if values > _cri_tau:
                         colors.append('red')
-                        weak_hypothesis.append(layers_name)
                     elif values > _cri_tau / 2:
                         colors.append('orange')
                     elif values > _cri_tau / 10:
@@ -150,8 +151,9 @@ def plot_cdp_results(_path,
                 ''' --------------------------------------- '''
                 # clear the previous axis
                 ax.clear()
-                ax.barh(kernel_indices, top_x_values, alpha=0.5, color=colors, align='center')
+                ax.barh(np.arange(len(top_x_values)), top_x_values, alpha=0.5, color=colors, align='center')
                 ax.invert_yaxis()  # labels read top-to-bottom
+                ax.set_yticklabels(top_x_indices, minor=False)
                 ax.set_xlabel('Criticality')
                 ax.set_ylabel('Indices')
                 #ax.set_title("Neural criticality for layer: {} and class: {}".format(each_layer, _class))
@@ -183,42 +185,45 @@ def plot_cdp_results(_path,
 
                 # ax.grid(True)
                 fig.savefig(os.path.join(fig_dir, layers_name + "_histogram.png"))
-    ''' --------------------------------------- '''
-    ''' Plotting models layers criticality '''
-    ''' --------------------------------------- '''
-    #plot_models_models_criticality(layers_criticality,
-    #                               weak_hypothesis,
-    #                               _path,
-    #                               _model_name)
+
+            layers_criticality[layers_names] = np.mean(criticality_values)
+        ''' --------------------------------------- '''
+        ''' Plotting models layers criticality '''
+        ''' --------------------------------------- '''
+        plot_models_models_criticality(layers_criticality,
+                                       _path,
+                                       _model_name,
+                                       label,
+                                       _cri_tau)
 
 
-def plot_models_models_criticality(_list_of_layers, layer_criticality, weak_hypothesis, _path, _model_name):
+def plot_models_models_criticality(layer_criticality, _path, _model_name, _class, _tau):
     # ploting models layers criticality
-    fig_dir = os.path.join(_path, _model_name)
+    fig_dir = os.path.join(_path, _model_name, _class)
     if not os.path.exists(fig_dir):
         os.makedirs(fig_dir)
 
     colors = list()
-    for each_layer in _list_of_layers:
-        if each_layer in weak_hypothesis:
+    criticality = list()
+    for each_layer, mean_criticality in layer_criticality.items():
+        if mean_criticality > _tau:
             colors.append('red')
         else:
             colors.append('green')
+        criticality.append(mean_criticality)
 
-    x_pos = np.arange(len(_list_of_layers))
+    x_pos = list(layer_criticality.keys())
 
-    plt.rcParams.update({'font.size': 10})
-    fig, ax = plt.subplots(figsize=(6,3))
+    plt.rcParams.update({'font.size': 4})
+    fig, ax = plt.subplots(figsize=(6, 3))
 
-    ax.bar(_list_of_layers, layer_criticality, alpha=0.5, color=colors)
+    ax.bar(x_pos, criticality, alpha=0.5, color=colors)
     labels = ax.get_xticklabels()
     plt.setp(labels, rotation=45, horizontalalignment='right')
-    plt.rcParams.update({'font.size': 12})
+    plt.rcParams.update({'font.size': 6})
     ax.set_title("Layers\' normalized criticality for model: {}, for class: {}".format(_model_name, _class))
     ax.set_ylabel('Mean of normalized criticality')
     ax.set_xlabel('Layers\' names')
-    # plt.margins(0.2)
     # Tweak spacing to prevent clipping of tick-labels
     fig.tight_layout()
-    # ax.subplots_adjust(bottom=0.25)
-    fig.savefig(os.path.join(fig_dir, _model_name + "_criticality_result.pdf"))
+    fig.savefig(os.path.join(fig_dir, _model_name + "_" + _class + "_criticality_result.pdf"))

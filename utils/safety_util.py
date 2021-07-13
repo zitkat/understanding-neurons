@@ -181,12 +181,6 @@ class SafetyAnalysis:
         des_ind = [self.DataSet.list_of_classes_labels.index(index) for index in des_cls]
         des_conf = [probabilities[index][label_index] for index, label_index in enumerate(des_ind)]
 
-        #if ((des_cls != pre_cls) or (des_cls == pre_cls and pre_conf < 0.5)) and remove == True:
-        #    os.remove(os.path.join( path, file_name))
-
-        #self.logger.debug("Prediction index: {}, class: {}, confidence: {}, for image: {}".format(
-        #                    pre_ind, pre_cls, pre_conf, file_name))
-
         return pre_ind, pre_conf, des_ind, des_conf
 
     def analyse_criticality_via_plain_masking(self, device):
@@ -236,11 +230,6 @@ class SafetyAnalysis:
                                                                                 pre_ind,
                                                                                 new_ind,
                                                                                 self.criticality_tau)
-                        #logging.error("Criticality: " + str(criticality))
-                        #for lab, cri in zip(label, criticality):
-                        #    filter_stats[lab].append(cri)
-                        #    filter_stats_json[lab].append(str(cri))
-                        #for lab, cri in zip(label, criticality):
 
                         layer_stats[original_layers_name][each_filter] = criticality
                         criticality_str = [str(cri) for cri in criticality]
@@ -255,16 +244,12 @@ class SafetyAnalysis:
 
         self.logger.debug(" ----------- CDPA finished ----------- ")
 
-        #self.fun.plot_CDP_results(_path, proj_dict, image_name, _model_name, des_cls, self.dict_of_weights, self.criticality_tau, "project", _adversary=adversary)
-        #self.fun.plot_CDP_results(_path, conv_dict, image_name, _model_name, des_cls, self.dict_of_weights, self.criticality_tau, "conv", _adversary=adversary)
-        # self.fun.plot_layers_responses_results(_path, image_name, _model_name, des_cls, self.fm_sum_responses_dict)
 
     def analyse_CDP_plain_masking_offline(self, image_name):
 
         dictionary_path = os.path.join("data", "statistics_dict" + image_name + ".json")
         with open(dictionary_path, 'r') as fp:
             data = json.load(fp)
-        #print(data)
 
     def analyse_accuracy_of_masked_model(self, _files_path, _path_benchmark, _models, _classes, worst_neurons_dict, _n_worst=20):
         temp_worst_neurons = dict()
