@@ -2,8 +2,11 @@ from __future__ import print_function, division
 
 from PIL import Image
 import os
+import shutil
 import numpy as np
 import collections
+import torch
+from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 
@@ -20,15 +23,7 @@ class DataSet:
         self.list_of_classes_labels = self.open_imagenet_labels()
         self.num_classes = len(self.list_of_classes_labels)
         self.dataset = collections.defaultdict(list)
-        self.load_testset_from_path(
-            os.path.join("data", "dataset", "images"),
-            _resize=True,
-            _normalize=True,
-            _channels_last=False,
-            _width=224,
-            _height=224,
-            _channels=3
-        )
+
 
     def open_imagenet_labels(self):
         return self.open_txt_as_list(
@@ -42,6 +37,50 @@ class DataSet:
                (key, output_class, rest) = line.split("'",2)
                l.append(output_class)
         return l
+
+    def sort_images_according_to_label(self, model, path, confidence_threshold, batch_size, device):
+        valid_images = [".jpg", ".png", ".jpeg"]
+
+        images = [x for x in os.listdir(path) if not x.startswith('.')]
+        images.sort()
+        #files = collections.defaultdict(list)
+        #for folder in folders:
+        #    images = [x for x in os.listdir(os.path.join(path, folder)) if not x.startswith('.')]
+
+        for i in tqdm(range(0, len(images), batch_size)):
+            input_batch = images[i:i + batch_size]
+
+            images_batch = list()
+            pre_ind = list()
+            pre_conf = list()
+            pre_cls = list()
+            for images in input_batch:
+
+                # import raw images and resize them
+                ext = os.path.splitext(images)[-1]
+                if ext.lower() in valid_images:
+                    image = Image.open(os.path.join(path, images))
+                    image_array = np.asarray(image, dtype=np.float32)
+                    image_array /= 255.
+                    image_array = np.moveaxis(image_array, -1, 0)
+                    images_batch.append(image_array)
+
+            images_array = np.asarray(images_batch)
+            images_tensor = torch.FloatTensor(torch.from_numpy(images_array))
+            output = model(images_tensor)
+            probabilities = torch.nn.functional.softmax(output, dim=1)
+            probabilities = probabilities.cpu().detach().numpy()
+
+            pre_ind = list(np.argmax(probabilities, axis=1))
+            pre_conf = list(np.max(probabilities, axis=1))
+            pre_cls = [self.list_of_classes_labels[index] for index in pre_ind]
+
+            for label, confidences, image in zip(pre_conf, pre_cls, input_batch):
+                if confidences > confidence_threshold:
+                    fig_dir = os.path.join(path, label)
+                    if not os.path.exists(fig_dir):
+                        os.makedirs(fig_dir)
+                    shutil.copyfile(os.path.join(path, image), os.path.join(fig_dir, image))
 
     def load_testset_from_path(self,
                                _path_dataset,
@@ -65,10 +104,6 @@ class DataSet:
         for class_name, file_names in files.items():
             batch_image = list()
             batch_label = list()
-
-            # @TBD: predict desired class and remove images with low confidence
-            #if ((des_cls != pre_cls) or (des_cls == pre_cls and pre_conf < 0.5)) and remove:
-            #    os.remove(os.path.join(path, file_name))
 
             for index, file_name in enumerate(file_names[0]):
                 # import raw images and resize them

@@ -137,12 +137,29 @@ if __name__ == '__main__':
     model.to(device)
     mmodel = MappedModel(model).eval().to(device)
     print(model)
-    #dataset = DataSet()
+    dataset = DataSet()
+    #dataset.load_testset_from_path(
+    #    os.path.join("data", "dataset", "images"),
+    #    _resize=True,
+    #    _normalize=True,
+    #    _channels_last=False,
+    #    _width=224,
+    #    _height=224,
+    #    _channels=3
+    #)
+    path = os.path.join("data", "dataset", "imagenet", "train")
+    confidence_threshold = 0.8
+    batch_size = 32
+    dataset.sort_images_according_to_label(mmodel,
+                                           path,
+                                           confidence_threshold,
+                                           batch_size,
+                                           device)
     #safety_analysis = SafetyAnalysis(mmodel, dataset)
     #safety_analysis.analyse_criticality_via_plain_masking(device)
-    with open(os.path.join("data", "statistics_dict.json")) as f:
-        statistics = json.load(f)
-        plot_cdp_results(os.path.join("data", "generated"), statistics, "mobilenetv3_rw", 0.5)
+    #with open(os.path.join("data", "statistics_dict.json")) as f:
+    #    statistics = json.load(f)
+    #    plot_cdp_results(os.path.join("data", "generated"), statistics, "mobilenetv3_rw", 0.5)
 
     all_layers = list(mmodel.layers.keys())
     rendered_path = Path("data/pretrained_seresnext50_32x4d/npys")
