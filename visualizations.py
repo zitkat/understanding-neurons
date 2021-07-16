@@ -4,6 +4,7 @@
 __author__ = "Tomas Zitka"
 __email__ = "zitkat@kky.zcu.cz"
 
+import matplotlib.colors
 import numpy as np
 
 import matplotlib.pyplot as plt
@@ -84,20 +85,28 @@ def plot_colormarked_var(ax, fig, df,
     return color_vals, olines, omarks
 
 
-def scatter_colormarked_var(ax, fig, df,
+def scatter_colormarked_var(ax, fig, df : pd.DataFrame,
                             color_var, mk_var,
                             x_var, y_var,
                             **kwargs):
     """
     Use in plot_parametrized_var as display_colormarked_var function.
     """
-    hue_style = fill_dict(["hue", "style"], [color_var, mk_var])
+    if df.empty:
+        return None, None, None
+
+    color_vmin, color_vmax = kwargs.pop("color_vextend",
+                                        (df[color_var].min(), df[color_var].max))
+    use_cbar = kwargs.pop("use_color_bar", True)
+
     s = sns.scatterplot(data=df,
-                        **hue_style,
+                        **fill_dict(["hue", "style"], [color_var, mk_var]),
                         x=x_var,
                         y=y_var,
-                        palette="viridis_r",  # TODO common color scaling across calls?
-                        ax=ax)
+                        palette="viridis_r",
+                        hue_norm=matplotlib.colors.Normalize(vmin=color_vmin, vmax=color_vmax),
+                        ax=ax,
+                        **kwargs)
     h, _ = s.get_legend_handles_labels()
     if mk_var is not None:
         mlen = len(df[mk_var].unique())
@@ -106,21 +115,14 @@ def scatter_colormarked_var(ax, fig, df,
         mlen = 0
         omarks = []
 
-    use_cbar = kwargs.get("use_color_bar", True)
     if not use_cbar:
         color_vals = df[color_var].unique()
         clen = len(color_vals)
         olines = h[:clen]
     else:
         color_vals = None
-        norm = plt.Normalize(0, len(h) - mlen)
+        norm = plt.Normalize(color_vmin, color_vmax)
         olines = plt.cm.ScalarMappable(cmap="viridis_r", norm=norm)
-
-    ax.legend().remove()
-    ax.set_xlabel(None)
-    ax.set_ylabel(None)
-    ax.axes.xaxis.set_ticks([])
-    ax.axes.yaxis.set_ticks([])
 
     return color_vals, olines, omarks
 
@@ -172,9 +174,20 @@ def plot_parametrized_var(df : pd.DataFrame,
 
     :return: figure and dictionary of axes indexed by (column, row) tuple
     """
+    xlim = df[x_var].min(), df[x_var].max()
+    ylim = df[y_var].min(), df[y_var].max()
+
 
     ncol, iter_columns = get_var_filter_iter(df, column_var)
     nrow, iter_rows = get_var_filter_iter(df, row_var)
+
+    color_vmin = 0.0
+    color_vmax = 1.0
+    if color_var is not None:
+        color_vmax = df[color_var].max()
+        color_vmin = df[color_var].min()
+        color_vextend = (color_vmin, color_vmax)
+        kwargs = {**kwargs, "color_vextend": color_vextend}
 
 
     y_lab = kwargs.pop("y_lab", y_var)
@@ -197,25 +210,36 @@ def plot_parametrized_var(df : pd.DataFrame,
     axs = wrap_axes(axs, ncol, nrow)
     axs_dict = {}
 
-    # Call mark-color variable display for rows and columns
     for ii, (row_val, row_filt) in enumerate(iter_rows()):
         for jj, (col_val, clm_filt) in enumerate(iter_columns()):
-            ax = axs[ii][jj]
+            ax : matplotlib.axes._subplots.AxesSubplot = axs[ii][jj]
             axs_dict[(row_val, col_val)] = ax
-
+            ax.set_xlim(xlim)
+            ax.set_ylim(ylim)
 
             # TODO add option to force axes extent
 
             ax.set_title(f"{row_lab}: {row_val}, {clm_lab}: {col_val}")
-            color_vals, olines, omarks = \
+
+            display_results = \
                 display_colormarked_var(ax, fig,
                                         df[clm_filt & row_filt],
                                         color_var, mk_var,
                                         x_var, y_var, **kwargs)
+            if any(dr is not None for dr in display_results):
+                color_vals, olines, omarks = display_results
+
+            ax.legend([]).remove()
+            ax.set_xlabel(None)
+            ax.set_ylabel(None)
             if jj == 0:
                 ax.set_ylabel(y_lab)
+            else:
+                ax.axes.yaxis.set_ticks([])
             if ii == nrow - 1:
                 ax.set_xlabel(x_lab)
+            else:
+                ax.axes.xaxis.set_ticks([])
 
     if mk_var is not None:
         marks_ax = fig.add_axes(marks_ax_rect)

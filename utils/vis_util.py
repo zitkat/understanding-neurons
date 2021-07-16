@@ -16,8 +16,9 @@ import itertools
 
 import pandas as pd
 
-def get_unit_from_labels(labels: np.ndarray, layer_name, n, prefix="neurons", suffix="v1"):
-    wherelay = np.where(labels == "-".join((prefix, layer_name, suffix)))[0]
+
+def get_unit_from_labels(labels: np.ndarray, layer_name, n, prefix="neurons", suffix="v1", sep="-"):
+    wherelay = np.where(labels == sep.join((prefix, layer_name, suffix)))[0]
     lidx = wherelay[0]
     if n > len(wherelay):
         raise ValueError(f"Only {len(wherelay)} in layer {layer_name} rendered but {n}-th one requested")
@@ -155,7 +156,7 @@ def plot_cdp_results(_path,
                     criticality_values.append(np.mean([float(value) for value in kernel_criticality]))
                     # criticality_values.append( np.mean(only_critical_neurons) * (max_number_of_weights / len(top_x_values)) )
 
-                if top_x_neurons is "all":
+                if top_x_neurons == "all":
                     top_x_values = criticality_values
                     top_x_indices = kernel_indices
                     plt.rcParams.update({'font.size': 8})
