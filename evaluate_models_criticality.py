@@ -63,13 +63,11 @@ class MappedModel(nn.Module):
         self.record_activations = True
         return self
 
-
     def _get_activation_hook(self, name):
         def hook(model, input, output):
             if self.record_activations:
                 self.activations[name] = output.detach()
         return hook
-
 
     def extract_circuit(self, layer, n, extraction_strategy=None):
         head_weights = self[layer, n]
@@ -127,7 +125,6 @@ if __name__ == '__main__':
     import timm
 
     models_to_evaluate = ["mobilenetv3_rw", "efficientnet_b0", "resnet18", "vit_base_patch16_224"]
-
     for models_name in models_to_evaluate:
 
         model = timm.create_model(models_name, pretrained=True)
@@ -136,18 +133,19 @@ if __name__ == '__main__':
         mmodel = MappedModel(model).eval().to(device)
         dataset = DataSet()
 
-        batch_size = 32
         dataset_path = os.path.join("data", "dataset", "imagenet", "train")
+        output_path = os.path.join("data", "dataset", "imagenet", "classes")
         confidence_threshold = 0.8
-
-        dataset.sort_images_according_to_label(mmodel,
+        batch_size = 32
+        dataset.sort_and_copy_images_according_to_label(mmodel,
                                                dataset_path,
+                                               output_path,
                                                confidence_threshold,
                                                batch_size,
                                                device)
 
         dataset.load_testset_from_path(
-            os.path.join("data", "dataset", "images"),
+            output_path,
             _resize=True,
             _normalize=True,
             _channels_last=False,
