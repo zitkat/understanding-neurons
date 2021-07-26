@@ -22,7 +22,7 @@ from utils.process_util import plogger, add_plog_file, now
 @click.option("-w", "--model-weights", default="initialized",
               help="Can be 'pretrained', 'initialized' or path to pth file with state dict.")
 @click.option("--layers", type=str, default="all",
-              help="PAth .list file or regular expression selecting layers")
+              help="Path .list file or regular expression selecting layers")
 @click.option("--mode", "-m", multiple=True,
               help="Mode of rendering, neurons or channels.")
 @click.option("-sv", "--settings-version", type=str, default="Default",

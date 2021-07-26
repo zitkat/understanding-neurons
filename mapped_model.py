@@ -99,6 +99,9 @@ class MappedModel(nn.Module):
             # TODO return neuron weights based on (layer, n) tuple
             raise NotImplemented("TODO return neuron weights base on (layer, n) tuple")
         elif isinstance(item, str):
+            if ":" in item:
+                pref, suf = item.split(":")
+                return self.layers[pref].weight[int(suf)]
             return self.layers[item]
 
 
@@ -124,22 +127,14 @@ def build_layers_dict(module : nn.Module):
 
 
 if __name__ == '__main__':
-    from utils.model_util import get_timm_model
     import timm
 
-    #model = get_timm_model("mobilenetv3_rw", target_size=1000, pretrained=True)
     model = timm.create_model("mobilenetv3_rw", pretrained=True)
-    #model = timm.create_model('efficientnet_b0', pretrained=True)
-    #model = timm.create_model('resnet18', pretrained=True)
-    #net_dict = torch.load("data/models/seresnext50_32x4d_0_best.pth")
-    #model.load_state_dict(net_dict)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     mmodel = MappedModel(model).eval().to(device)
     print(model)
-    #dataset = DataSet()
-    #safety_analysis = SafetyAnalysis(mmodel, dataset)
-    #safety_analysis.analyse_criticality_via_plain_masking(device)
+
     with open(os.path.join("data", "statistics_dict.json")) as f:
         statistics = json.load(f)
         plot_cdp_results(os.path.join("data", "generated"), statistics, "mobilenetv3_rw", 0.5)
