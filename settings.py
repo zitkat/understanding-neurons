@@ -26,7 +26,7 @@ transforms = [
 ]
 
 
-def load_settings(set_path: Path = Path("settings.csv"),
+def load_settings(set_path: Path = Path("rendering_settings.csv"),
                   set_name: str = "Default",
                   group_sep=":Group:"):
     """
@@ -80,5 +80,5 @@ def load_settings(set_path: Path = Path("settings.csv"),
 
 
 if __name__ == '__main__':
-    settings = load_settings(Path("settings.csv"), "v2")
+    settings = load_settings(Path("rendering_settings.csv"), "v2")
     pass

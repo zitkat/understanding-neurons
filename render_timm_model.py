@@ -27,7 +27,7 @@ from settings import load_settings
               help="Mode of rendering, neurons or channels.")
 @click.option("-sv", "--settings-version", type=str, default="Default",
               help="Column in settings file to use as settings")
-@click.option("--settings-file", type=Path, default=Path("settings.csv"))
+@click.option("--settings-file", type=Path, default=Path("rendering_settings.csv"))
 @click.option("--output", type=Path, default=Path("data/renders"))
 @click.option("--hide-progress", is_flag=True)
 def main(model_name: str, model_weights: str,
