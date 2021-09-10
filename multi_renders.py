@@ -17,10 +17,9 @@ import pandas as pd
 from lucent.optvis import render, param
 
 from settings import transforms
-from utils.model_util import ncobj, batch_indices, iterate_renderable_layers
+from utils.model_util import ncobj, batch_indices, iterate_renderable_layers, build_layers_dict
 from utils.process_util import plogger, ensured_path
 from visualizations import show_fvs
-from mapped_model import build_layers_dict
 
 
 def render_layer(model, layer, idcs, mode="neuron", batch_size=6, image_size=(50,),

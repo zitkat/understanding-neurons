@@ -10,16 +10,13 @@ from collections import OrderedDict
 from itertools import chain
 from typing import TypeVar
 from pathlib import Path
-import os
-import json
 
 import torch
 from lucent.optvis import render
 from torch import nn
 
 import multi_renders
-from utils.model_util import iterate_renderable_layers
-from utils.vis_util import plot_cdp_results
+from utils.model_util import iterate_renderable_layers, build_layers_dict
 
 
 T = TypeVar('T', bound='MappedModel')
@@ -124,27 +121,6 @@ class MappedModel(nn.Module):
                 pref, suf = item.split(":")
                 return self.layers[pref].weight[int(suf)]
             return self.layers[item]
-
-
-def build_layers_dict(module : nn.Module):
-    """
-    Like get_model_layers from lucent.modelzoo.util
-    but returns actual layer objects
-    :param module:
-    :return: OrderedDict(layer_name: layer
-    """
-    layers = OrderedDict()
-
-    def get_layers(net, prefix=[]):
-        if hasattr(net, "_modules"):
-            for name, layer in net._modules.items():
-                if layer is None:
-                    continue
-                layers["-".join(prefix+[name])] = layer
-                get_layers(layer, prefix=prefix+[name])
-
-    get_layers(module)
-    return layers
 
 
 if __name__ == '__main__':

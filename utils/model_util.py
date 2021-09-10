@@ -7,7 +7,7 @@ Utilities for manipulating model layers.
 __author__ = "Tomas Zitka"
 __email__ = "zitkat@kky.zcu.cz"
 
-from typing import Dict, List
+from typing import Dict, List, OrderedDict
 
 import timm
 from lucent.optvis import objectives
@@ -15,6 +15,27 @@ from lucent.optvis.objectives import Objective
 from torch import nn as nn
 
 from .process_util import plogger, now
+
+
+def build_layers_dict(module : nn.Module):
+    """
+    Like get_model_layers from lucent.modelzoo.util
+    but returns actual layer objects
+    :param module:
+    :return: OrderedDict(layer_name: layer
+    """
+    layers = OrderedDict()
+
+    def get_layers(net, prefix=[]):
+        if hasattr(net, "_modules"):
+            for name, layer in net._modules.items():
+                if layer is None:
+                    continue
+                layers["-".join(prefix+[name])] = layer
+                get_layers(layer, prefix=prefix+[name])
+
+    get_layers(module)
+    return layers
 
 
 def get_layer(module : nn.Module, layer : str):
