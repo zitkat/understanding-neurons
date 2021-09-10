@@ -157,10 +157,6 @@ if __name__ == '__main__':
     act = mmodel.forward(torch.zeros((1, 3, 224, 224)).to(device), return_activations=True)
     print(model)
 
-    with open(os.path.join("data", "statistics_dict.json")) as f:
-        statistics = json.load(f)
-        plot_cdp_results(os.path.join("data", "generated"), statistics, "mobilenetv3_rw", 0.5)
-
     all_layers = list(mmodel.layers.keys())
     rendered_path = Path("data/pretrained_seresnext50_32x4d/npys")
     rendered_layers = list(rendered_path.glob("*.npy"))

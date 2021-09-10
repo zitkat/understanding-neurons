@@ -129,9 +129,9 @@ def add_criticality_data(p_df, from_json):
 def plot_cdp_results(_path,
                      _cri_stat_dict,
                      _model_name,
+                     top_x_neurons="all",
                      _cri_tau=0.5):
 
-    top_x_neurons = 100
     layers_name = None
 
     fig, ax = plt.subplots()
@@ -156,7 +156,7 @@ def plot_cdp_results(_path,
                     criticality_values.append(np.mean([float(value) for value in kernel_criticality]))
                     # criticality_values.append( np.mean(only_critical_neurons) * (max_number_of_weights / len(top_x_values)) )
 
-                if top_x_neurons == "all":
+                if top_x_neurons == "all" or top_x_neurons == 0:
                     top_x_values = criticality_values
                     top_x_indices = kernel_indices
                     plt.rcParams.update({'font.size': 8})
@@ -207,16 +207,9 @@ def plot_cdp_results(_path,
                 # clear the previous axis
                 ax.clear()
                 bin = 100
-                n, bins, patches = ax.hist(top_x_values, bin, density=True, facecolor='g', alpha=0.75)
-
-                mean = np.mean(top_x_values)
+                #mean = np.mean(top_x_values)
                 std = np.std(top_x_values)
-                entropy = False
-                if entropy:
-                    newX_top_x_values = top_x_values - mean
-                    newX_top_x_values = newX_top_x_values / std
-                    layers_entropy = entropy(newX_top_x_values, base=2)
-                    ax.text(0, .5, layers_entropy)
+                n, bins, patches = ax.hist(top_x_values, bin, yerr=std, density=True, facecolor='g', alpha=0.75)
 
                 # ax.set_xlabel('Filter indexes')
                 ax.set_ylabel("Density")
