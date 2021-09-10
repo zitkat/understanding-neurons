@@ -1,10 +1,13 @@
 #!python
 # -*- coding: utf-8 -*-
-
+"""
+Model analysis tools wrapped in MappedModel class.
+"""
 __author__ = "Tomas Zitka"
 __email__ = "zitkat@kky.zcu.cz"
 
 from collections import OrderedDict
+from itertools import chain
 from typing import TypeVar
 from pathlib import Path
 import os
@@ -16,8 +19,6 @@ from torch import nn
 
 import multi_renders
 from utils.model_util import iterate_renderable_layers
-from utils.dataset_util import DataSet
-from utils.safety_util import SafetyAnalysis
 from utils.vis_util import plot_cdp_results
 
 
@@ -26,15 +27,21 @@ T = TypeVar('T', bound='MappedModel')
 
 class MappedModel(nn.Module):
 
-    def __init__(self, model):
+    activation_recording_modes = ["both", "input", "ouput"]
+
+    def __init__(self, model, activation_recording_mode : str = "both"):
         super(MappedModel, self).__init__()
         self.module = model
         self.layers = build_layers_dict(self.module)
 
-        self.renderable_layers = OrderedDict(
-                (n, o) for n, o, _ in iterate_renderable_layers(self.layers))
+        self.renderable_layers = OrderedDict((n, o) for n, o, _ in
+                                             iterate_renderable_layers(self.layers))
 
-        self.activations = OrderedDict()
+        self.activation_recording_mode = "both"
+        self.change_activation_rec_mode(activation_recording_mode)
+
+        self.output_activations = OrderedDict()
+        self.input_activations = OrderedDict()
         self.record_activations = False
         for name, layer in self.layers.items():
             layer : nn.Module
@@ -44,7 +51,11 @@ class MappedModel(nn.Module):
     def forward(self, *args, return_activations=False, **kwargs):
         out = self.module.forward(*args, **kwargs)
         if self.record_activations and return_activations:
-            return self.activations
+            if self.activation_recording_mode == "both" or \
+                    self.activation_recording_mode == "output":
+                return self.output_activations
+            else:
+                return OrderedDict(chain(self.input_activations.items(),  OrderedDict(out=out).items()))
         return out
 
     def train(self: T, mode: bool = True) -> T:
@@ -63,32 +74,43 @@ class MappedModel(nn.Module):
         self.record_activations = True
         return self
 
+    def change_activation_rec_mode(self : T, newmode : str) -> T:
+        if newmode in MappedModel.activation_recording_modes:
+            self.activation_recording_mode = newmode
+            return self
+        else:
+            raise ValueError("Unknown activation recording mode.")
 
-    def _get_activation_hook(self, name):
-        def hook(model, input, output):
+    def clear_activation_recs(self : T) -> T:
+        self.input_activations = OrderedDict()
+        self.output_activations = OrderedDict()
+        return self
+
+    def _get_activation_hook(self: T, name):
+        def hook(model, model_input, model_output):
             if self.record_activations:
-                self.activations[name] = output.detach()
+                if self.activation_recording_mode == "output" or \
+                        self.activation_recording_mode == "both":
+                    self.output_activations[name] = model_output.detach()
+                if self.activation_recording_mode == "input" or \
+                        self.activation_recording_mode == "both":
+                    self.input_activations[name] = model_input[0].detach()
         return hook
 
-
-    def extract_circuit(self, layer, n, extraction_strategy=None):
+    def extract_circuit(self : T, layer, n, extraction_strategy=None):
         head_weights = self[layer, n]
         # TODO use https://pytorch.org/docs/stable/jit.html to get traversable computational graph?
 
-    def kill_unit(self, layer, unit) -> nn.Module:
-        ...
-        # TODO zero out specified unit
-
-    def render_vis(self, *args, **kwargs):
+    def render_vis(self : T, *args, **kwargs):
         return render.render_vis(self.module, *args, **kwargs)
 
-    def render_layer(self, *args, **kwargs):
+    def render_layer(self : T, *args, **kwargs):
         return multi_renders.render_layer(self.module, *args, **kwargs)
 
-    def render_model(self, *args, **kwargs):
+    def render_model(self : T, *args, **kwargs):
         return multi_renders.render_model(self.module, *args, **kwargs)
 
-    def __getitem__(self, item):
+    def __getitem__(self : T, item):
         if isinstance(item, slice):
             # TODO return slice of layers as invocable, mapped module
             raise NotImplemented("TODO return slice of layers as invocable, mapped module")
@@ -96,8 +118,7 @@ class MappedModel(nn.Module):
             # TODO reuturn list of layers
             raise NotImplemented("TODO reuturn list of layers")
         elif isinstance(item, tuple):
-            # TODO return neuron weights based on (layer, n) tuple
-            raise NotImplemented("TODO return neuron weights base on (layer, n) tuple")
+            return self.layers[item[0]].weight[int(item[1])]
         elif isinstance(item, str):
             if ":" in item:
                 pref, suf = item.split(":")
@@ -129,10 +150,11 @@ def build_layers_dict(module : nn.Module):
 if __name__ == '__main__':
     import timm
 
-    model = timm.create_model("mobilenetv3_rw", pretrained=True)
+    model = timm.create_model("resnet50", pretrained=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
-    mmodel = MappedModel(model).eval().to(device)
+    mmodel = MappedModel(model, activation_recording_mode="input").eval().to(device)
+    act = mmodel.forward(torch.zeros((1, 3, 224, 224)).to(device), return_activations=True)
     print(model)
 
     with open(os.path.join("data", "statistics_dict.json")) as f:

@@ -1,5 +1,8 @@
 #!python
 # -*- coding: utf-8 -*-
+"""
+Functions for rendering: whole model or a single layer
+"""
 
 __author__ = "Tomas Zitka"
 __email__ = "zitkat@kky.zcu.cz"

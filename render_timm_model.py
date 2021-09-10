@@ -22,7 +22,7 @@ from settings import load_settings
 @click.option("-w", "--model-weights", default="initialized",
               help="Can be 'pretrained', 'initialized' or path to pth file with state dict.")
 @click.option("--layers", type=str, default="all",
-              help="PAth .list file or regular expression selecting layers")
+              help="Path .list file or regular expression selecting layers")
 @click.option("--mode", "-m", multiple=True,
               help="Mode of rendering, neurons or channels.")
 @click.option("-sv", "--settings-version", type=str, default="Default",
@@ -35,6 +35,9 @@ def main(model_name: str, model_weights: str,
          settings_version: str, settings_file: Path,
          output: Path,
          hide_progress: bool):
+    """
+    This script renders feature visualizations of a timm model using lucent
+    """
 
     add_plog_file(output / f"{now()}_{model_name}_{model_weights}.plog")
     plogger.info(f"Rendering {model_name}: {model_weights}")

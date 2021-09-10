@@ -1,5 +1,9 @@
 #!python
 # -*- coding: utf-8 -*-
+"""
+Settings and utils for managing settings for model rendering.
+"""
+
 
 __author__ = "Tomas Zitka"
 __email__ = "zitkat@kky.zcu.cz"
