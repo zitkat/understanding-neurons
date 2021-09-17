@@ -4,4 +4,7 @@ pandas
 matplotlib
 seaborn
 click
+tqdm
+pillow
+scikit-learn
 git+git://github.com/zitkat/lucent.git@mymaster#egg=torch_lucent

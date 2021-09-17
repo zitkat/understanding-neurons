@@ -1,4 +1,4 @@
-# Understanding Critical Neurons
+# Understanding Neurons
 
 ## Setup
 
@@ -10,8 +10,8 @@
 3. You're good to go!
 
 ## Enviroment
-Ready-to-go singularity image is in data folder. Use `requirements.txt` only when setting up
-python virtual enviroment.
+Ready-to-go singularity image is in data folder, alternatively the corresponding defintion file is `lucent_torch_21.03-py3.def`. 
+Use `requirements.txt` only when setting up python virtual enviroment. 
 
 ## TODO in infrastructure and visualization
 - effectively render multiple neurons from different layers
