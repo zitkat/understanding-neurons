@@ -22,7 +22,7 @@ def build_layers_dict(module : nn.Module):
     Like get_model_layers from lucent.modelzoo.util
     but returns actual layer objects
     :param module:
-    :return: OrderedDict(layer_name: layer
+    :return: OrderedDict(layer_name: layer)
     """
     layers = OrderedDict()
 

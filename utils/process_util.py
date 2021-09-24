@@ -1,5 +1,8 @@
 #!python
 # -*- coding: utf-8 -*-
+"""
+Utils for managing processing.
+"""
 
 __author__ = "Tomas Zitka"
 __email__ = "zitkat@kky.zcu.cz"

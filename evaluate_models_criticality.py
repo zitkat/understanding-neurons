@@ -9,9 +9,9 @@ import torch
 
 from mapped_model import MappedModel
 
-from datasets.dataset_util import DataSet
-from safety_util import SafetyAnalysis
-from utils.vis_util import plot_cdp_results
+from datasets.crit_dataset import DataSet
+from safety import SafetyAnalysis
+from visualizations import plot_cdp_results
 
 if __name__ == '__main__':
     import timm
