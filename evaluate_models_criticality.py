@@ -9,8 +9,8 @@ import torch
 
 from mapped_model import MappedModel
 
-from utils.dataset_util import DataSet
-from utils.safety_util import SafetyAnalysis
+from datasets.dataset_util import DataSet
+from safety_util import SafetyAnalysis
 from utils.vis_util import plot_cdp_results
 
 if __name__ == '__main__':
