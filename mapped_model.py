@@ -24,7 +24,7 @@ T = TypeVar('T', bound='MappedModel')
 
 class MappedModel(nn.Module):
 
-    activation_recording_modes = ["both", "input", "ouput"]
+    activation_recording_modes = ["both", "input", "output"]
 
     def __init__(self, model, activation_recording_mode : str = "both"):
         super(MappedModel, self).__init__()
@@ -43,6 +43,8 @@ class MappedModel(nn.Module):
         for name, layer in self.layers.items():
             layer : nn.Module
             layer.register_forward_hook(self._get_activation_hook(name))
+
+        self.eval()
 
 
     def forward(self, *args, return_activations=False, **kwargs):
@@ -78,7 +80,7 @@ class MappedModel(nn.Module):
         else:
             raise ValueError("Unknown activation recording mode.")
 
-    def clear_activation_recs(self : T) -> T:
+    def clear_activation_recs(self: T) -> T:
         self.input_activations = OrderedDict()
         self.output_activations = OrderedDict()
         return self
