@@ -18,7 +18,7 @@ from lucent.optvis import render, param
 
 from settings import transforms
 from utils.model_util import ncobj, batch_indices, iterate_renderable_layers, build_layers_dict
-from utils.process_util import plogger, ensured_path
+from utils.process_util import plogger, ensured_path, now
 from visualizations import show_fvs
 
 
@@ -58,6 +58,8 @@ def render_layer(model, layer, idcs, mode="neuron", batch_size=6, image_size=(50
 
 def render_model(model, layers, idcs=None, mode="neuron", outputs_path=None,
                  output_suffix="", batch_size=6, image_size=(50,),
+                 save_samples : bool = True, n_test_units : int = None,
+                 stat_only : bool = False,
                  # render_vis params
                  optimizer=None,
                  transforms=transforms,
@@ -72,23 +74,32 @@ def render_model(model, layers, idcs=None, mode="neuron", outputs_path=None,
                  fixed_image_size=None):
     if hasattr(model, "module"):
         model = model.module
+    model = model.to(0).eval()
 
     selected_layers = select_layers(layers, model)
     open(ensured_path(outputs_path / "layers.list"), "w", encoding="utf-8").write("\n".join(selected_layers.keys()))
 
-    model = model.to(0).eval()
-    for layer_name, layer_object, n in iterate_renderable_layers(selected_layers, verbose=True):
+    stats_list = []
+    for layer_name, layer_object, n in iterate_renderable_layers(selected_layers,
+                                                                 verbose=True):
 
         ns = idcs
         if idcs is None:
             ns = list(range(n))
+            if stat_only:
+                if n_test_units is not None:
+                    ns = list(range(n_test_units))
+                else:
+                    ns = list(range(batch_size))
 
         # TODO save to h5
         output_npys_path = ensured_path((outputs_path / "npys") / (mode + "s-" + layer_name + "-" + output_suffix))
         output_fig_path = ensured_path((outputs_path / "figs") / (mode + "s-" + layer_name + "-" + output_suffix + ".png"))
-        if output_npys_path.with_suffix(".npy").exists():
+        if output_npys_path.with_suffix(".npy").exists() and not stat_only:
             plogger.info(f"{output_npys_path} already exists.")
             continue
+
+        t0 = time.time()
         res = render_layer(model, layer_name, ns, mode=mode, batch_size=batch_size, image_size=image_size,
                            optimizer=optimizer,
                            transforms=transforms,
@@ -102,10 +113,28 @@ def render_model(model, layers, idcs=None, mode="neuron", outputs_path=None,
                            show_inline=show_inline,
                            fixed_image_size=fixed_image_size
                            )
-        np.save(output_npys_path, res)
-        f, a = show_fvs(res, ns, max_cols=8)
-        f.savefig(output_fig_path)
-        plt.close()
+        t1 = time.time()
+
+        if save_samples:
+            plogger.debug(f"{now()} Saving renders, shape: {res.shape}")
+            np.save(output_npys_path, res)
+            f, a = show_fvs(res, ns, max_cols=8)
+            f.savefig(output_fig_path)
+            plt.close()
+
+        stats_dict = dict(name=layer_name, cls=type(layer_object),
+                          units=n,
+                          test_units=len(ns),
+                          bs=batch_size,
+                          unit_time=(t1 - t0) / len(ns),
+                          batch_time=(t1 - t0) / len(ns) * batch_size,
+                          all_time=(t1 - t0) / len(ns) * n
+                          )
+        stats_list.append(stats_dict)
+
+    stats_df = pd.DataFrame(stats_list)
+    stats_df.set_index("name", inplace=True)
+    return stats_df
 
 
 def select_layers(layers, model):
@@ -125,52 +154,3 @@ def select_layers(layers, model):
         plogger.error(f"Unsupported specification of layers to render {layers}.")
         raise ValueError("Unsupported specification of layers to render.")
     return selected_layers
-
-
-def stat_model(model, layers=None, idcs=None, mode="neuron", batch_size=6, image_size=(50,),
-               outputs_path=None, output_suffix="",
-               save_samples : bool = True, n_test_units : int =None,
-               **kwargs):
-    if hasattr(model, "module"):
-        model = model.module
-    model = model.to(0).eval()
-
-    selected_layers = select_layers(layers if layers is not None else "all",
-                                    model)
-
-
-    stats_list = []
-    for layer_name, layer_obj, n in iterate_renderable_layers(selected_layers,
-                                                              verbose=True):
-        output_npys_path = ensured_path((outputs_path / "npys") / (mode + "s-" + layer_name + "-" + output_suffix))
-        output_fig_path = ensured_path((outputs_path / "figs") / (mode + "s-" + layer_name + "-" + output_suffix + ".png"))
-        if idcs is None:
-            if n_test_units is not None:
-                idcs = list(range(n_test_units))
-            else:
-                idcs = list(range(batch_size))
-
-        t0 = time.time()
-        res = render_layer(model, layer_name, idcs, mode=mode, batch_size=batch_size, image_size=image_size, **kwargs)
-        t1 = time.time()
-
-
-        if save_samples:
-            np.save(output_npys_path, res)
-            f, a = show_fvs(res, idcs, max_cols=8)
-            f.savefig(output_fig_path)
-            plt.close()
-
-        stats_dict = dict(name=layer_name, cls=type(layer_obj),
-                          units=n,
-                          test_units=len(idcs),
-                          bs=batch_size,
-                          unit_time=(t1 - t0) / len(idcs),
-                          batch_time=(t1 - t0) / len(idcs) * batch_size,
-                          all_time=(t1 - t0) / len(idcs) * n
-                          )
-        stats_list.append(stats_dict)
-
-    stats_df = pd.DataFrame(stats_list)
-    stats_df.set_index("name", inplace=True)
-    return stats_df

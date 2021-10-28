@@ -11,7 +11,7 @@ from pathlib import Path
 import torch
 import timm
 
-from utils.model_util import get_timm_classfier
+from utils.model_util import get_timm_classfier, get_model
 from utils.process_util import now, plogger, add_plog_file
 from multi_renders import render_model
 from settings import load_settings
@@ -30,11 +30,13 @@ from settings import load_settings
 @click.option("--settings-file", type=Path, default=Path("rendering_settings.csv"))
 @click.option("--output", type=Path, default=Path("data/renders"))
 @click.option("--hide-progress", is_flag=True)
+@click.option("--stat-only", is_flag=True)
+@click.option("--no-save-samples", is_flag=True)
 def main(model_name: str, model_weights: str,
          mode: List, layers: str,
          settings_version: str, settings_file: Path,
          output: Path,
-         hide_progress: bool):
+         hide_progress: bool, stat_only : bool, no_save_samples : bool):
     """
     This script renders feature visualizations of a timm model using lucent
     """
@@ -42,28 +44,7 @@ def main(model_name: str, model_weights: str,
     add_plog_file(output / f"{now()}_{model_name}_{model_weights}.plog")
     plogger.info(f"Rendering {model_name}: {model_weights}")
 
-    name = model_weights
-    if model_weights.endswith(".pth"):
-        model_weights = Path(model_weights)
-        name = model_weights.stem
-        model = get_timm_classfier(model_name, target_size=5)
-        net_dict = torch.load(model_weights)
-        model.load_state_dict(net_dict)
-    elif model_weights == "pretrained":
-        model = timm.create_model(model_name, pretrained=True)
-    elif model_weights == "initialized":
-        save_path = output / (model_name + "_init.pth")
-        if save_path.exists():
-            plogger.info(f"Loading existing initialization from {save_path}")
-            model = get_timm_classfier(model_name, target_size=5)
-            net_dict = torch.load(save_path)
-            model.load_state_dict(net_dict)
-        else:
-            model = get_timm_classfier(model_name, target_size=5, pretrained=False)
-            torch.save(model.cpu().state_dict(), save_path)
-    else:
-        plogger.error(f"Unknown option for model weights {model_weights} terminating!")
-        return
+    model, name = get_model(model_name, model_weights, output)
     outputs_path = Path(output, model_name + "_" + name)
 
     if mode:
@@ -77,13 +58,16 @@ def main(model_name: str, model_weights: str,
     settings = load_settings(settings_file, settings_version)
 
     for mode in modes:
-        render_model(model,
-                     layers=layers,
-                     mode=mode,
-                     outputs_path=outputs_path,
-                     output_suffix=settings_version,
-                     progress=not hide_progress,
-                     **settings["render"])
+        df = render_model(model,
+                          layers=layers,
+                          mode=mode,
+                          outputs_path=outputs_path,
+                          output_suffix=settings_version,
+                          progress=not hide_progress,
+                          stat_only=stat_only,
+                          save_samples=not no_save_samples,
+                          **settings["render"])
+        df.to_csv(outputs_path / f"{mode}s-stats.csv")
 
 
 if __name__ == '__main__':

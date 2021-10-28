@@ -289,7 +289,7 @@ def show_fvs(fv_array, ns, max_cols=4):
     N = len(ns)
     rows = max(int(np.ceil(N / max_cols)), 1)
     cols = min(N, max_cols)
-    plogger.debug(f"{rows}, {cols}")
+    plogger.debug(f"Rendering {N} units in {rows}x{cols} grid.")
     fig, axs = plt.subplots(nrows=rows, ncols=cols,
                             figsize=(5*max_cols, 5*rows),
                             tight_layout=True)

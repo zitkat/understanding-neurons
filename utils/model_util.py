@@ -7,14 +7,18 @@ Utilities for manipulating model layers.
 __author__ = "Tomas Zitka"
 __email__ = "zitkat@kky.zcu.cz"
 
+from pathlib import Path
+
 from typing import Dict, List, OrderedDict
 
+import torch
 import timm
 from lucent.optvis import objectives
 from lucent.optvis.objectives import Objective
 from torch import nn as nn
 
-from .process_util import plogger, now
+
+from .process_util import plogger, now, ensured_path
 
 
 def build_layers_dict(module : nn.Module):
@@ -112,3 +116,43 @@ def get_timm_classfier(architecture_name : str, target_size : int, pretrained : 
     num_ftrs = getattr(net, last_layer).in_features
     setattr(net, last_layer, nn.Linear(num_ftrs, target_size))
     return net
+
+
+def get_model(model_name, model_weights, output):
+    """
+    Get model from name and weigh specification.
+    :param model_name: model name in timm
+    :param model_weights: path to weights or pretrained to
+            download pretrained wights from timm, or initialized
+            to use rendomly initialized
+    :param output: output folder to save initial weights for reproducibility
+    :return: model, weights name
+    """
+    name = model_weights
+    if model_weights.endswith(".pth"):
+        model_weights_path = Path(model_weights)
+        name = model_weights_path.stem
+        model = get_timm_classfier(model_name, target_size=5)
+        net_dict = torch.load(model_weights)
+        model.load_state_dict(net_dict)
+    elif model_weights == "pretrained":
+        plogger.info(f"Loading pretrained model from timm.")
+        model = timm.create_model(model_name, pretrained=True)
+    elif model_weights == "initialized":
+        save_path = ensured_path(output / (model_name + "_init.pth"))
+        if save_path.exists():
+            plogger.info(f"Loading existing initialization from {save_path}")
+            model = get_timm_classfier(model_name, target_size=5)
+            net_dict = torch.load(save_path)
+            model.load_state_dict(net_dict)
+        else:
+            plogger.info(f"Saving new initialization to {save_path}")
+            model = get_timm_classfier(model_name, target_size=5, pretrained=False)
+            torch.save(model.cpu().state_dict(), save_path)
+    else:
+        err_msg = f"Unknown option for model weights {model_weights} terminating!"
+        plogger.error(err_msg)
+        raise ValueError(err_msg)
+
+    return model, name,
+
