@@ -23,10 +23,18 @@ T = TypeVar('T', bound='MappedModel')
 
 
 class MappedModel(nn.Module):
+    """
+    Model wrapper providing usefull functionality for analyzing a module.
+    """
 
     activation_recording_modes = ["both", "input", "output"]
 
-    def __init__(self, model, activation_recording_mode : str = "both"):
+    def __init__(self, model: nn.Module, activation_recording_mode : str = "both"):
+        """
+
+        :param model: torch.nn.Model to map
+        :param activation_recording_mode: ["both", "input", "output"]
+        """
         super(MappedModel, self).__init__()
         self.module = model
         self.layers = build_layers_dict(self.module)
@@ -35,11 +43,11 @@ class MappedModel(nn.Module):
                                              iterate_renderable_layers(self.layers))
 
         self.activation_recording_mode = "both"
+        self.record_activations = False
         self.change_activation_rec_mode(activation_recording_mode)
 
         self.output_activations = OrderedDict()
         self.input_activations = OrderedDict()
-        self.record_activations = False
         for name, layer in self.layers.items():
             layer : nn.Module
             layer.register_forward_hook(self._get_activation_hook(name))
@@ -48,6 +56,13 @@ class MappedModel(nn.Module):
 
 
     def forward(self, *args, return_activations=False, **kwargs):
+        """
+        Forward pass on underlying model with activation recordning
+        :param args:
+        :param return_activations:
+        :param kwargs:
+        :return:
+        """
         out = self.module.forward(*args, **kwargs)
         if self.record_activations and return_activations:
             if self.activation_recording_mode == "both" or \
@@ -80,7 +95,7 @@ class MappedModel(nn.Module):
         else:
             raise ValueError("Unknown activation recording mode.")
 
-    def clear_activation_recs(self: T) -> T:
+    def clear_activation_records(self: T) -> T:
         self.input_activations = OrderedDict()
         self.output_activations = OrderedDict()
         return self
@@ -114,7 +129,7 @@ class MappedModel(nn.Module):
             # TODO return slice of layers as invocable, mapped module
             raise NotImplemented("TODO return slice of layers as invocable, mapped module")
         elif isinstance(item, list):
-            # TODO reuturn list of layers
+            # TODO return list of layers
             raise NotImplemented("TODO reuturn list of layers")
         elif isinstance(item, tuple):
             return self.layers[item[0]].weight[int(item[1])]
