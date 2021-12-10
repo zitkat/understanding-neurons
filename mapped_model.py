@@ -29,28 +29,40 @@ class MappedModel(nn.Module):
 
     activation_recording_modes = ["both", "input", "output"]
 
-    def __init__(self, model: nn.Module, activation_recording_mode : str = "both"):
+    def __init__(self, model: nn.Module,
+                 activation_recording_mode : str = "both",
+                 single_layer_activation_recording : str = None):
         """
 
         :param model: torch.nn.Model to map
         :param activation_recording_mode: ["both", "input", "output"]
         """
+
         super(MappedModel, self).__init__()
         self.module = model
-        self.layers = build_layers_dict(self.module)
+        self.layers: OrderedDict[torch.nn.Module] = build_layers_dict(self.module)
 
-        self.renderable_layers = OrderedDict((n, o) for n, o, _ in
-                                             iterate_renderable_layers(self.layers))
+        self.renderable_layers: OrderedDict[torch.nn.Module] = \
+            OrderedDict((n, o) for n, o, _ in iterate_renderable_layers(self.layers))
 
         self.activation_recording_mode = "both"
-        self.record_activations = False
         self.change_activation_rec_mode(activation_recording_mode)
 
-        self.output_activations = OrderedDict()
-        self.input_activations = OrderedDict()
+        if single_layer_activation_recording is not None:
+            if single_layer_activation_recording not in self.layers:
+                raise ValueError(f"Layer {single_layer_activation_recording} not present in model layers")
+
+        self.single_layer_activation_recording = single_layer_activation_recording
+
+        self.output_activations: OrderedDict[torch.Tensor] = OrderedDict()
+        self.input_activations: OrderedDict[torch.Tensor] = OrderedDict()
+        self.self_atentions: OrderedDict[torch.Tensor] = OrderedDict()
+        self.record_activations = False
+
         for name, layer in self.layers.items():
             layer : nn.Module
-            layer.register_forward_hook(self._get_activation_hook(name))
+            if self.single_layer_activation_recording is None or self.single_layer_activation_recording == name:
+                layer.register_forward_hook(self._get_activation_hook(name))
 
         self.eval()
 
@@ -73,7 +85,6 @@ class MappedModel(nn.Module):
         return out
 
     def train(self: T, mode: bool = True) -> T:
-        self.record_activations = not mode
         return super(MappedModel, self).train(mode)
 
     def activation_recording(self: T, mode : bool) -> T:
@@ -95,17 +106,26 @@ class MappedModel(nn.Module):
         else:
             raise ValueError("Unknown activation recording mode.")
 
-    def clear_activation_records(self: T) -> T:
+    def clear_activation_recs(self: T) -> T:
         self.input_activations = OrderedDict()
         self.output_activations = OrderedDict()
         return self
 
     def _get_activation_hook(self: T, name):
+
         def hook(model, model_input, model_output):
+            # if not isinstance(model_output, torch.Tensor):
+            #     print("So far so good!")
+
             if self.record_activations:
+
                 if self.activation_recording_mode == "output" or \
                         self.activation_recording_mode == "both":
+                    if isinstance(model, nn.modules.MultiheadAttention):
+                        model_output, attention = model_output
+                        self.self_atentions[name] = attention.detach()
                     self.output_activations[name] = model_output.detach()
+
                 if self.activation_recording_mode == "input" or \
                         self.activation_recording_mode == "both":
                     self.input_activations[name] = model_input[0].detach()
