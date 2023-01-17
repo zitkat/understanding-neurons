@@ -56,7 +56,7 @@ class MappedModel(nn.Module):
 
         self.output_activations: OrderedDict[torch.Tensor] = OrderedDict()
         self.input_activations: OrderedDict[torch.Tensor] = OrderedDict()
-        self.self_atentions: OrderedDict[torch.Tensor] = OrderedDict()
+        self.attentions: OrderedDict[torch.Tensor] = OrderedDict()
         self.record_activations = False
 
         for name, layer in self.layers.items():
@@ -65,7 +65,6 @@ class MappedModel(nn.Module):
                 layer.register_forward_hook(self._get_activation_hook(name))
 
         self.eval()
-
 
     def forward(self, *args, return_activations=False, **kwargs):
         """
@@ -83,6 +82,9 @@ class MappedModel(nn.Module):
             else:
                 return OrderedDict(chain(self.input_activations.items(),  OrderedDict(out=out).items()))
         return out
+
+    def __call__(self, *args, return_activations=False, **kwargs):
+        return self.forward(*args, return_activations=return_activations, **kwargs)
 
     def train(self: T, mode: bool = True) -> T:
         return super(MappedModel, self).train(mode)
@@ -106,9 +108,10 @@ class MappedModel(nn.Module):
         else:
             raise ValueError("Unknown activation recording mode.")
 
-    def clear_activation_recs(self: T) -> T:
+    def clear_records(self: T) -> T:
         self.input_activations = OrderedDict()
         self.output_activations = OrderedDict()
+        self.attentions = OrderedDict()
         return self
 
     def _get_activation_hook(self: T, name):
@@ -123,7 +126,7 @@ class MappedModel(nn.Module):
                         self.activation_recording_mode == "both":
                     if isinstance(model, nn.modules.MultiheadAttention):
                         model_output, attention = model_output
-                        self.self_atentions[name] = attention.detach()
+                        self.attentions.setdefault(name, []).append(attention.detach())
                     self.output_activations[name] = model_output.detach()
 
                 if self.activation_recording_mode == "input" or \

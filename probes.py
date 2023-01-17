@@ -8,21 +8,21 @@ from collections import OrderedDict
 from itertools import chain
 from typing import TypeVar
 
-import toolz
-
 import torch
 from torch import nn
 
-from deformable_potr.models.ops.modules import MSDeformAttn
-from .utils.model_util import iterate_renderable_layers, build_layers_dict
-
+from utils.model_util import iterate_renderable_layers, build_layers_dict
 
 T = TypeVar('T', bound='ActivationProbe')
 
 
 class ActivationProbe(nn.Module):
     """
-    Model wrapper providing usefull functionality for analyzing a module.
+    Model wrapper recording activation as they occur during forward pass.
+
+    Call activation_recording to start recording, then run model forward or
+    probe forward method, you will find activations in output_activations,
+    input_activations or attentions.
     """
 
     activation_recording_modes = ["both", "input", "output"]
@@ -32,9 +32,11 @@ class ActivationProbe(nn.Module):
                  activation_recording_mode: str = "both",
                  single_layer_activation_recording: str = None):
         """
+        Recursively traverse model layers and attach recording hooks to them.
 
-        :param model: torch.nn.Model to map
+        :param model: torch.nn.Model to record
         :param activation_recording_mode: ["both", "input", "output"]
+        :param single_layer_activation_recording: name of the single layer to record
         """
 
         super(ActivationProbe, self).__init__()
@@ -57,7 +59,6 @@ class ActivationProbe(nn.Module):
         self.output_activations: OrderedDict[torch.Tensor] = OrderedDict()
         self.input_activations: OrderedDict[torch.Tensor] = OrderedDict()
         self.attentions: OrderedDict[torch.Tensor] = OrderedDict()
-        self.sampling_locations: OrderedDict[torch.Tensor] = OrderedDict()
         self.record_activations = False
 
         for name, layer in self.layers.items():
@@ -69,10 +70,10 @@ class ActivationProbe(nn.Module):
 
     def forward(self, *args, return_activations=False, **kwargs):
         """
-        Forward pass on underlying model with activation recordning
+        Run forward pass on underlying model with activation recording
         :param args:
-        :param return_activations:
-        :param kwargs:
+        :param return_activations: returns model output and all recorded activations
+        :param kwargs: kwargs are passed to the model
         :return:
         """
         out = self.module.forward(*args, **kwargs)
@@ -124,6 +125,12 @@ class ActivationProbe(nn.Module):
         return self
 
     def _get_activation_hook(self: T, name):
+        """Create activation hook to attach to a layer.
+
+        Creates function that parses layer activations and saves them to
+        corresponding  dict in self. modify the logic when adding specific layer.
+        :param name: name of the layer
+        """
 
         def hook(model, model_input, model_output):
             # if not isinstance(model_output, torch.Tensor):
@@ -135,17 +142,22 @@ class ActivationProbe(nn.Module):
                         self.activation_recording_mode == "both":
                     if isinstance(model, nn.modules.MultiheadAttention):
                         model_output, attention = model_output
+                        if attention is None:
+                            raise TypeError(f"Attempted to record attentions from "
+                                            f"MultiheadAttention layer {name} but "
+                                            f"attention is {type(attention)}.\n"
+                                            f"In order to record attentions modify "
+                                            f"torch.nn.modules.transformer"
+                                            f"TransformerDecoderLayer and TransformerEncoderLayer,"
+                                            f"in _sa_block and _mha_block, "
+                                            f"call self_attn and multihead_attn with need_weights=True.")
                         self.attentions.setdefault(name, []).append(attention.detach())
-                    elif isinstance(model, MSDeformAttn):
-                        model_outpout, sampling_locations, attention_weights = model_output
-                        self.attentions.setdefault(name, []).append(attention_weights.detach())
-                        self.sampling_locations.setdefault(name, []).append(sampling_locations.detach())
+                        self.output_activations.setdefault(name, []).append(model_output.detach())
                     elif isinstance(model_output, tuple):
                         if self.verbose: print(f"Skip tuple {name}")
                     elif isinstance(model_output, list):
                         self.output_activations[name] = [o.detach() for o in model_output]
                     elif isinstance(model_output, dict):
-                        # self.output_activations[name] = toolz.valmap(toolz.partial(map, torch.detach), model_output)
                         if self.verbose: print(f"Skip dict {name}")
                     else:
                         self.output_activations[name] = model_output.detach()
