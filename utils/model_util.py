@@ -120,7 +120,7 @@ def get_timm_classfier(architecture_name : str, target_size : int, pretrained : 
 
 def get_model(model_name, model_weights, output):
     """
-    Get model from name and weigh specification.
+    Get model from name and weight specification.
     :param model_name: model name in timm
     :param model_weights: path to weights or pretrained to
             download pretrained wights from timm, or initialized

@@ -29,12 +29,8 @@ sys.path
 
 # %%
 from pathlib import Path
-import matplotlib.pyplot as plt
 import numpy as np
-from itertools import chain
-import seaborn as sns
 import pandas as pd
-import pickle
 
 # %%
 from utils import load_npy_fvs, split_mobilenet_labels, add_criticality_data
@@ -118,22 +114,10 @@ W.shape
 H.shape
 
 # %%
-from collections import OrderedDict
-from typing import TypeVar
-from pathlib import Path
-import os
-import json
 
 import torch
-from lucent.optvis import render
-from torch import nn
 import timm
 
-import multi_renders
-from utils.model_util import iterate_renderable_layers
-from utils.dataset_util import DataSet
-from utils.safety_util import SafetyAnalysis
-from utils.vis_util import plot_cdp_results
 from mapped_model import MappedModel
 
 

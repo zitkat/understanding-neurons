@@ -149,7 +149,7 @@ def wrap_axes(axs, ncol, nrow):
     return axs
 
 
-def plot_parametrized_var(df : pd.DataFrame,
+def plot_parametrized_var(df: pd.DataFrame,
                           x_var, y_var,
                           column_var=None, row_var=None,
                           color_var=None, mk_var=None,
@@ -157,7 +157,7 @@ def plot_parametrized_var(df : pd.DataFrame,
                           **kwargs):
     """
     This functions serves to display results of parametric study organized into pandas DataFrame,
-    each column of the DataFrame can represent different dimension of visuailzatio, changing over:
+    each column of the DataFrame can represent different dimension of visuailzation, changing over:
     columns/rows of axes grid, colors/markers of plotted elements, and xy coordinates. With exception
     of x_var and y_var, variables are optional and can be omitted or replaced with None.
 
@@ -170,15 +170,15 @@ def plot_parametrized_var(df : pd.DataFrame,
     :param mk_var:
     :param display_colormarked_var: a function
         (ax, fig, df, color_var, mk_var, x_var, y_var) -> color_vals, olines, omarks
-        see scatter_colormarked_var or plot_colormarked_var
+        see scatter_colormarked_var or plot_colormarked_var for examples
     :param kwargs: following kwargs are supported: x_lab, y_lab, column_lab, row_lab, color_lab,
         mk_lab, figsize;
         marks_leg_rect : for adjusting markers legend position , default [0.55, .07, 0.01, 0.01];
         lines_leg_rect : for adjusting lines legend position, default [0, .07, 0.01, 0.01];
         lines_ncol: number of columns in line legend;
         cbar_rect : for adjusting colorbar position, mutually exclusive with lines_leg_rect,
-        default [0.805, 0.15, 0.01, 0.7];
-        whatewer kwargs display_colormarked_var supports
+            default [0.805, 0.15, 0.01, 0.7];
+        rest of the kwargs are passed to display_colormarked_var
 
     :return: figure and dictionary of axes indexed by (column, row) tuple
     """
