@@ -7,10 +7,13 @@ __email__ = "zitkat@kky.zcu.cz"
 from collections import OrderedDict
 from itertools import chain
 from typing import TypeVar
+from pathlib import Path
 
 import torch
+from lucent.optvis import render
 from torch import nn
 
+from visualization import multi_renders
 from utils.pytorch_model_util import iterate_renderable_layers, build_layers_dict
 
 T = TypeVar('T', bound='ActivationProbe')
@@ -63,7 +66,8 @@ class ActivationProbe(nn.Module):
 
         for name, layer in self.layers.items():
             layer : nn.Module
-            layer.register_forward_hook(self._get_activation_hook(name))
+            if self.single_layer_activation_recording is None or self.single_layer_activation_recording == name:
+                layer.register_forward_hook(self._get_activation_hook(name))
 
         self.eval()
 
@@ -162,3 +166,54 @@ class ActivationProbe(nn.Module):
                         self.activation_recording_mode == "both":
                     self.input_activations[name] = model_input[0].detach()
         return hook
+
+    def extract_circuit(self : T, layer, n, extraction_strategy=None):
+        head_weights = self[layer, n]
+        # TODO use https://pytorch.org/docs/stable/jit.html to get traversable computational graph?
+
+    def render_vis(self : T, *args, **kwargs):
+        return render.render_vis(self.module, *args, **kwargs)
+
+    def render_layer(self : T, *args, **kwargs):
+        return multi_renders.render_layer(self.module, *args, **kwargs)
+
+    def render_model(self : T, *args, **kwargs):
+        return multi_renders.render_model(self.module, *args, **kwargs)
+
+    def __getitem__(self : T, item):
+        if isinstance(item, slice):
+            # TODO return slice of layers as invocable, mapped module
+            raise NotImplemented("TODO return slice of layers as invocable, mapped module")
+        elif isinstance(item, list):
+            # TODO return list of layers
+            raise NotImplemented("TODO reuturn list of layers")
+        elif isinstance(item, tuple):
+            return self.layers[item[0]].weight[int(item[1])]
+        elif isinstance(item, str):
+            if ":" in item:
+                pref, suf = item.split(":")
+                return self.layers[pref].weight[int(suf)]
+            return self.layers[item]
+
+
+if __name__ == '__main__':
+    import timm
+
+    model = timm.create_model("resnet50", pretrained=True)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model.to(device)
+    pmodel = ActivationProbe(model, activation_recording_mode="input").eval().to(device)
+    act = pmodel.forward(torch.zeros((1, 3, 224, 224)).to(device), return_activations=True)
+    print(model)
+
+    all_layers = list(pmodel.layers.keys())
+    rendered_path = Path("data/pretrained_seresnext50_32x4d/npys")
+    rendered_layers = list(rendered_path.glob("*.npy"))
+    all_conv_layers = list(filter(lambda s: "conv" in s, all_layers))
+    rendered_layers = ["_".join(fl.stem.split("_")[1:-1]) for fl in rendered_layers]
+    print("All layers", len(all_conv_layers))
+    len(rendered_layers)
+    print("Rendered layers", len(set(rendered_layers)))
+    todo_layers = list(set(all_conv_layers) - set(rendered_layers))
+    print("TODO layers", len(todo_layers))
+    open(rendered_path.parent / "layers.list", "w").write("\n".join(todo_layers))
