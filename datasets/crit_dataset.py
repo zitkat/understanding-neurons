@@ -80,7 +80,6 @@ class DataSet:
             list_of_images = [x for x in os.listdir(os.path.join(out_path, label)) if not x.startswith('.')]
             print("Label: " + label + ", contains: " + len(list_of_images))
 
-
     def load_testset_from_path(self,
                                _path_dataset,
                                _resize=True,

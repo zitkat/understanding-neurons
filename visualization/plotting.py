@@ -23,7 +23,7 @@ import seaborn as sns
 from tqdm import tqdm
 
 from utils import plogger
-from utils.vis_util import get_var_filter_iter, fill_dict, none2str
+from visualization.util import get_var_filter_iter, fill_dict, none2str
 
 symbols = dict(zip(map(str, np.arange(0, 6, dtype=int)),
                    ["o", "d", "v", "^", "s", "p"]))
@@ -333,6 +333,7 @@ def get_fv_annotator(fig, ax):
         ax.add_artist(iab)
         ax.add_artist(tab)
     return annotator
+
 
 # %% Criticality plots
 def plot_cdp_results(_path,

@@ -11,9 +11,9 @@ from pathlib import Path
 import torch
 import timm
 
-from utils.model_util import get_timm_classfier, get_model
+from utils.pytorch_model_util import get_timm_classfier, get_model
 from utils.process_util import now, plogger, add_plog_file
-from multi_renders import render_model
+from visualization.multi_renders import render_model
 from settings import load_settings
 
 

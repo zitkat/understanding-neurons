@@ -37,7 +37,7 @@ import pandas as pd
 
 # %%
 from utils import load_npy_fvs, split_mobilenet_labels
-from visualizations import plot_parametrized_var, scatter_colormarked_var
+from visualization.plotting import plot_parametrized_var, scatter_colormarked_var
 
 # %% [markdown]
 # ### Constants

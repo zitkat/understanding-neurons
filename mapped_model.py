@@ -15,8 +15,8 @@ import torch
 from lucent.optvis import render
 from torch import nn
 
-import multi_renders
-from utils.model_util import iterate_renderable_layers, build_layers_dict
+from visualization import multi_renders
+from utils.pytorch_model_util import iterate_renderable_layers, build_layers_dict
 
 
 T = TypeVar('T', bound='MappedModel')
@@ -24,7 +24,7 @@ T = TypeVar('T', bound='MappedModel')
 
 class MappedModel(nn.Module):
     """
-    Model wrapper providing usefull functionality for analyzing a module.
+    PyTorch Model wrapper providing useful functionality for analyzing a module.
     """
 
     activation_recording_modes = ["both", "input", "output"]

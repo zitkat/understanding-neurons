@@ -11,14 +11,14 @@ from typing import TypeVar
 import torch
 from torch import nn
 
-from utils.model_util import iterate_renderable_layers, build_layers_dict
+from utils.pytorch_model_util import iterate_renderable_layers, build_layers_dict
 
 T = TypeVar('T', bound='ActivationProbe')
 
 
 class ActivationProbe(nn.Module):
     """
-    Model wrapper recording activations as they occur during forward pass.
+    PyTorch Model wrapper recording activations as they occur during forward pass.
 
     Call activation_recording to start recording, then run model forward or
     probe forward method, you will find activations in output_activations,

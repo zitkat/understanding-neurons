@@ -38,7 +38,7 @@ import pickle
 
 # %%
 from utils import load_npy_fvs, split_mobilenet_labels, add_criticality_data
-from visualizations import plot_parametrized_var, scatter_colormarked_var
+from visualization.plotting import plot_parametrized_var, scatter_colormarked_var
 
 # %% [markdown]
 # ### Constants
@@ -119,7 +119,7 @@ p_df = pickle.load(open((data_path / f"{model_name}_{stage}" / "crit_df").with_s
 
 # %%
 from utils import load_npy_fvs, split_mobilenet_labels, add_criticality_data
-from visualizations import plot_parametrized_var, scatter_colormarked_var
+from visualization.plotting import plot_parametrized_var, scatter_colormarked_var
 
 # %%
 fig, axs = plot_parametrized_var(p_df, x_var="x", y_var="y",

@@ -10,8 +10,8 @@ import torch
 from mapped_model import MappedModel
 
 from datasets.crit_dataset import DataSet
-from safety import SafetyAnalysis
-from visualizations import plot_cdp_results
+from probes.pytorch_safety import SafetyAnalysis
+from visualization.plotting import plot_cdp_results
 
 if __name__ == '__main__':
     import timm

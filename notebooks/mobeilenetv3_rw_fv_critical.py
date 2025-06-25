@@ -34,7 +34,7 @@ import pandas as pd
 
 # %%
 from utils import load_npy_fvs, split_mobilenet_labels, add_criticality_data
-from visualizations import show_fvs
+from visualization.plotting import show_fvs
 
 # %% [markdown]
 # ### Constants

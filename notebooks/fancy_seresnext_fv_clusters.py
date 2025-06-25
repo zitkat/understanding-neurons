@@ -41,7 +41,7 @@ import pandas as pd
 
 # %%
 from utils import load_npy_fvs, split_seresnext_labels, pretty_layer_label
-from visualizations import plot_parametrized_var, scatter_colormarked_var, get_fv_annotator
+from visualization.plotting import plot_parametrized_var, scatter_colormarked_var, get_fv_annotator
 
 # %% [markdown]
 # ### Constants
