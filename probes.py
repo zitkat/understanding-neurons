@@ -18,7 +18,7 @@ T = TypeVar('T', bound='ActivationProbe')
 
 class ActivationProbe(nn.Module):
     """
-    Model wrapper recording activation as they occur during forward pass.
+    Model wrapper recording activations as they occur during forward pass.
 
     Call activation_recording to start recording, then run model forward or
     probe forward method, you will find activations in output_activations,
@@ -63,8 +63,7 @@ class ActivationProbe(nn.Module):
 
         for name, layer in self.layers.items():
             layer : nn.Module
-            if self.single_layer_activation_recording is None or self.single_layer_activation_recording == name:
-                layer.register_forward_hook(self._get_activation_hook(name))
+            layer.register_forward_hook(self._get_activation_hook(name))
 
         self.eval()
 
@@ -133,9 +132,6 @@ class ActivationProbe(nn.Module):
         """
 
         def hook(model, model_input, model_output):
-            # if not isinstance(model_output, torch.Tensor):
-            #     print("So far so good!")
-
             if self.record_activations:
 
                 if self.activation_recording_mode == "output" or \

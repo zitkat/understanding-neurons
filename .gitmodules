@@ -1,0 +1,9 @@
+[submodule "attribution/Transformer_Explainability"]
+	path = attribution/Transformer_Explainability
+	url = https://github.com/hila-chefer/Transformer-Explainability.git
+[submodule "attribution/Transformer_MM_Explainability"]
+	path = attribution/Transformer_MM_Explainability
+	url = https://github.com/hila-chefer/Transformer-MM-Explainability.git
+[submodule "attribution/pytorch_grad_cam"]
+	path = attribution/pytorch_grad_cam
+	url = https://github.com/jacobgil/pytorch-grad-cam.git
