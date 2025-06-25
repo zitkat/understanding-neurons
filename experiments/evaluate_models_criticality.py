@@ -7,10 +7,9 @@ import os
 import torch
 
 
-from mapped_model import MappedModel
-
 from datasets.crit_dataset import DataSet
 from probes.pytorch_safety import SafetyAnalysis
+from probes.pytorch_activation_probe import ActivationProbe
 from visualization.plotting import plot_cdp_results
 
 if __name__ == '__main__':
@@ -22,7 +21,7 @@ if __name__ == '__main__':
         model = timm.create_model(models_name, pretrained=True)
         device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         model.to(device)
-        mmodel = MappedModel(model).eval().to(device)
+        mmodel = ActivationProbe(model).eval().to(device)
         dataset = DataSet()
 
         dataset_path = os.path.join("data", "dataset", "imagenet", "train")

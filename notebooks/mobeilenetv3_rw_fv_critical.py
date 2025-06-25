@@ -118,16 +118,15 @@ H.shape
 import torch
 import timm
 
-from mapped_model import MappedModel
-
+from probes.pytorch_activation_probe import ActivationProbe
 
 model = timm.create_model("mobilenetv3_rw", pretrained=True)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model.to(device)
-mmodel = MappedModel(model).eval().to(device)
+pmodel = ActivationProbe(model).eval().to(device)
 
 # %%
-mmodel["blocks-5-2-conv_dw:332"].shape
+pmodel["blocks-5-2-conv_dw:332"].shape
 
 # %%
 from sklearn.decomposition import NMF

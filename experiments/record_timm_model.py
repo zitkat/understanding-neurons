@@ -8,7 +8,7 @@ __email__ = "zitkat@kky.zcu.cz"
 import click
 from pathlib import Path
 
-from mapped_model import MappedModel
+from probes.pytorch_activation_probe import ActivationProbe
 from utils import get_model
 
 from utils.process_util import now, plogger, add_plog_file
@@ -46,13 +46,13 @@ def main(model_name: str,
 
     model, name = get_model(model_name, model_weights, output)
 
-    mmodel = MappedModel(model).to(0)
+    pmodel = ActivationProbe(model).to(0)
 
     dataset = torchvision.datasets.VOCSegmentation(root=r"D:\Datasets\PASCAL_VOC_2012",
                                                    year="2012")
 
     for sample in dataset:
-        act = mmodel.forward(sample[0], return_activations=True)
+        act = pmodel.forward(sample[0], return_activations=True)
 
 
         print(sample)
