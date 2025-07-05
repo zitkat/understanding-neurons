@@ -11,7 +11,7 @@
 ├── experiments                              - experiment scripts
 ├── notebooks                                - Jupyter notebooks
 ├── probes                                   - tools for probing models
-├── specimen                                 - model specimen for study
+├── specimens                                 - model specimen for study
 ├── utils                                    - general utils like settings
 └── visualization                            - tool for rendering vizualizations
 ```
@@ -22,3 +22,4 @@ Clone the repository using recurse submodules, move to the repository root
 ```bash
 git clone --recurse-submodules https://github.com/zitkat/understanding-neurons.git
 ```
+

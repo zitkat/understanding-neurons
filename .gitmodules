@@ -7,3 +7,7 @@
 [submodule "attribution/pytorch_grad_cam"]
 	path = attribution/pytorch_grad_cam
 	url = https://github.com/jacobgil/pytorch-grad-cam.git
+
+[submodule "specimens/TinyLlama"]
+	path = specimens/TinyLlama
+	url = https://github.com/jzhang38/TinyLlama.git
