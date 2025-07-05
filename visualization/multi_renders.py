@@ -5,7 +5,7 @@ Functions for rendering: whole model or a single layer
 """
 
 __author__ = "Tomas Zitka"
-__email__ = "zitkat@kky.zcu.cz"
+__email__ = "tozitka@gmail.com"
 
 import time
 from collections import OrderedDict

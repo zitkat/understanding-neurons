@@ -3,7 +3,7 @@ name = "understanding-neurons"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = "~= 3.13"
+requires-python = "~= 3.13.0"
 dependencies = [
     "matplotlib ~= 3.10.3",
     "numpy ~= 2.3.1",

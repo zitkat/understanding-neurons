@@ -5,7 +5,7 @@ General utils for manipulating data structures, functions and classes.
 """
 
 __author__ = "Tomas Zitka"
-__email__ = "zitkat@kky.zcu.cz"
+__email__ = "tozitka@gmail.com"
 
 from typing import Dict
 

@@ -5,7 +5,7 @@ Utils for managing processing.
 """
 
 __author__ = "Tomas Zitka"
-__email__ = "zitkat@kky.zcu.cz"
+__email__ = "tozitka@gmail.com"
 
 import logging
 import time

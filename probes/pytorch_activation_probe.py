@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Probes for observing models."""
 __author__ = "Tomas Zitka"
-__email__ = "zitkat@kky.zcu.cz"
+__email__ = "tozitka@gmail.com"
 
 from collections import OrderedDict
 from itertools import chain

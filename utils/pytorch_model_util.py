@@ -5,7 +5,7 @@ Utilities for manipulating model layers.
 """
 
 __author__ = "Tomas Zitka"
-__email__ = "zitkat@kky.zcu.cz"
+__email__ = "tozitka@gmail.com"
 
 from pathlib import Path
 
