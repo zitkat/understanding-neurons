@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 __author__ = "Tomas Zitka"
-__email__ = "zitkat@kky.zcu.cz"
+__email__ = "tozitka@gmail.com"
 
 
 from PIL import Image, ImageDraw, ImageFont

@@ -6,7 +6,7 @@ and specific data structure manipulation.
 """
 
 __author__ = "Tomas Zitka"
-__email__ = "zitkat@kky.zcu.cz"
+__email__ = "tozitka@gmail.com"
 
 import json
 from pathlib import Path

@@ -6,7 +6,7 @@ Settings and utils for managing settings for model rendering.
 
 
 __author__ = "Tomas Zitka"
-__email__ = "zitkat@kky.zcu.cz"
+__email__ = "tozitka@gmail.com"
 
 from pathlib import Path
 import pandas as pd
