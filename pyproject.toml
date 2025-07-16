@@ -17,6 +17,7 @@ dependencies = [
     "torch ~= 2.7.1",
     "torch-lucent",
     "accelerate>=1.8.1",
+    "click>=8.2.1",
 ]
 
 [dependency-groups]

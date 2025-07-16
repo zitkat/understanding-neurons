@@ -8,8 +8,6 @@ from typing import List
 
 import click
 from pathlib import Path
-import torch
-import timm
 
 from utils.pytorch_model_util import get_timm_classfier, get_model
 from utils.process_util import now, plogger, add_plog_file

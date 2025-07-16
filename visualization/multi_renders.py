@@ -19,7 +19,7 @@ from lucent.optvis import render, param
 from settings import transforms
 from utils.pytorch_model_util import ncobj, batch_indices, iterate_renderable_layers, build_layers_dict
 from utils.process_util import plogger, ensured_path, now
-from plotting import show_fvs
+from visualization.plotting import show_fvs
 
 
 def render_layer(model, layer, idcs, mode="neuron", batch_size=6, image_size=(50,),
